@@ -1,4 +1,7 @@
 client/bin/
 client/build/
+client/libs/
+client/include/
 .vscode/
 __pycache__/
+
