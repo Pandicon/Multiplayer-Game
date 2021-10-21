@@ -1,11 +1,24 @@
+import random
 from configHandler import loadConfigData
 
 def main():
     configData = loadConfigData()
+    generatedBoard = generateBoard()
+
+def generateBoard():
+    configData = loadConfigData()
     gameboardTemplate = configData["gameboard"]
-    print(spinLetters("rt", 4))
-    print(spinCoords([0, 0], 3))
-    print(spinTile([[0, 0], ["", "tl"]], 1))
+    shuffledGameboardParts = gameboardTemplate
+    random.shuffle(shuffledGameboardParts)
+    generatedBoard = [[], [], [], []]
+    for i in range(len(shuffledGameboardParts)):
+        quarter = shuffledGameboardParts[i]
+        if quarter == 0:
+            continue
+        for n in range(len(quarter)):
+            quarter[n] = spinTile(quarter[n], i)
+        generatedBoard[i] = quarter
+    return generatedBoard
 
 def spinLetters(input: str, spin: int) -> str:
     output = ""
