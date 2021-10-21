@@ -4,8 +4,9 @@ from configHandler import loadConfigData
 def main():
     configData = loadConfigData()
     generatedBoard = generateBoard()
+    print(generatedBoard)
 
-def generateBoard():
+def generateBoard(wallsToBool = True):
     configData = loadConfigData()
     gameboardTemplate = configData["gameboard"]
     shuffledGameboardParts = gameboardTemplate
@@ -17,6 +18,8 @@ def generateBoard():
             continue
         for n in range(len(quarter)):
             quarter[n] = spinTile(quarter[n], i)
+            if wallsToBool:
+                quarter[n][1][1] = tileWallsStrToBool(quarter[n][1][1])
         generatedBoard[i] = quarter
     return generatedBoard
 
@@ -27,7 +30,7 @@ def spinLetters(input: str, spin: int) -> str:
         output += letters[(letters.index(letter)+spin)%4]
     return output
 
-def spinCoords(input: list, spin: int) -> list:
+def spinCoords(input: list, spin: int) -> list[int]:
     max = 7
     x = input[0] - (max/2)
     y = input[1] - (max/2)
@@ -48,6 +51,24 @@ def spinTile(input: list, spin: int) -> list:
     letters = spinLetters(letters, spin)
     tileInfo[1] = letters
     return [coords, tileInfo]
+
+def tileWallsStrToBool(walls: str) -> list[bool]:
+    output = []
+    letters = ["t", "r", "b", "l"]
+    for i in range(len(letters)):
+        if letters[i] in walls:
+            output.append(True)
+        else:
+            output.append(False)
+    return output
+
+def tileWallsBoolToStr(walls: list[bool]) -> str:
+    output = ""
+    letters = ["t", "r", "b", "l"]
+    for i in range(len(walls)):
+        if walls[i]:
+            output += letters[i]
+    return output
 
 if __name__ == "__main__":
     main()
