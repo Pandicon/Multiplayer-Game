@@ -1,3 +1,4 @@
 client/bin/
 client/build/
 .vscode/
+__pycache__/
