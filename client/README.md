@@ -2,6 +2,8 @@ This is Multiplayer-Game client.
 # Used libraries
 It uses multiple libraries, which are also
 needed to compile the client. Used libraries are:
+library | download link | note
+--- | --- | ---
 glfw3 | https://www.glfw.org/download.html | (window)
 glad | https://glad.dav1d.de/#language=c&specification=gl&api=gl%3D4.0&api=gles1%3Dnone&api=gles2%3Dnone&api=glsc2%3Dnone&profile=core&loader=on | (OpenGL loader)
 stb | https://github.com/nothings/stb | only stb_image.h (texture loading)
