@@ -23,12 +23,17 @@ private:
 	glw::vao board;
 	glw::vbo boardvbo;
 	glw::ebo boardebo;
+	glw::vao wall;
+	glw::vbo wallvbo;
+	glw::ebo wallebo;
 	
 	glw::shader postsh;
 	glw::shader sh3d;
 
 	glw::tex2 boardtex;
 	glw::tex2 boardspectex;
+	glw::tex2 walltex;
+	glw::tex2 wallspectex;
 
 	glm::mat4 proj;
 	glm::vec2 camorient;

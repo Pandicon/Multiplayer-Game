@@ -15,6 +15,7 @@ uniform sampler2D tex;
 uniform sampler2D texspec;
 
 const float gamma = 2.2;
+const float specfactor = 0.5;
 
 vec2 calcLight(vec3 lpos, float ambient) {
 	vec3 lightdir = normalize(lpos - fpos);
@@ -22,7 +23,7 @@ vec2 calcLight(vec3 lpos, float ambient) {
 	vec3 halfdir = normalize(lightdir + viewDir);
 	float diff = max(dot(norm, lightdir), 0.0);
 	float spec = pow(max(dot(norm, halfdir), 0.0), 8.0);
-	return vec2(ambient + diff, spec);
+	return vec2(ambient + diff, spec * specfactor);
 }
 
 void main() {
