@@ -25,3 +25,6 @@ int main() {
 	glfwTerminate();
 	return 0;
 }
+
+#define GLW_HPP_DECLS
+#include "glw.hpp"

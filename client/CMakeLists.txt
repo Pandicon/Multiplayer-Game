@@ -27,3 +27,7 @@ if(MSVC)
 else()
 	target_compile_options(multi-client PUBLIC -Wall -Wextra -Wpedantic)
 endif()
+add_custom_command(TARGET multi-client POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy
+	${CMAKE_SOURCE_DIR}/README.md
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/README.md)

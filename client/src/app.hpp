@@ -3,6 +3,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "glw.hpp"
 
 class app {
 public:
@@ -13,6 +14,10 @@ public:
 	void resize(int ww, int wh);
 private:
 	float dt;
+	glw::vao quad;
+	glw::vbo quadvbo;
+	glw::ebo quadebo;
+	glw::shader postsh;
 
 	void tick();
 };

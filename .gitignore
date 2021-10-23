@@ -1,4 +1,5 @@
-client/bin/
+client/bin/*
+!client/bin/shaders
 client/build/
 client/libs/
 client/include/

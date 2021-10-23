@@ -38,3 +38,4 @@ mkdir build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 <then compile using make, vs...>
 ```
+the output executable should then be in bin.
