@@ -28,11 +28,15 @@ private:
 	glw::shader sh3d;
 
 	glw::tex2 boardtex;
+	glw::tex2 boardspectex;
 
 	glm::mat4 proj;
 	glm::vec2 camorient;
-
 	glm::vec2 prevm;
+	glm::vec3 sunpos;
+	glm::vec3 skycol;
+	glm::vec3 lamppos;
+	bool lamp;
 
 	void tick();
 };
