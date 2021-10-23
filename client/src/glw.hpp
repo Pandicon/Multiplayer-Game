@@ -697,7 +697,6 @@ namespace glw {
 		};
 		template<size_t ttaw, size_t ttah>
 		inline void rendStr(const std::string &str, float x, float y, float w, float h, float space, const tiledTextureAtlas<ttaw,ttah> &font) {
-			// str: intentional copy!
 			float sx = x;
 			font.atlas.bind(GL_TEXTURE0);
 			vao a;

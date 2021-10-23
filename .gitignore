@@ -1,5 +1,6 @@
 client/bin/*
 !client/bin/shaders
+!client/bin/textures
 client/build/
 client/libs/
 client/include/

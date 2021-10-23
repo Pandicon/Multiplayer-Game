@@ -3,6 +3,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 #include "glw.hpp"
 
 class app {
@@ -11,13 +12,27 @@ public:
 
 	app(int ww, int wh, const char *title);
 	void mainloop();
+	void no_event_mainloop();
 	void resize(int ww, int wh);
 private:
 	float dt;
+
 	glw::vao quad;
 	glw::vbo quadvbo;
 	glw::ebo quadebo;
+	glw::vao board;
+	glw::vbo boardvbo;
+	glw::ebo boardebo;
+	
 	glw::shader postsh;
+	glw::shader sh3d;
+
+	glw::tex2 boardtex;
+
+	glm::mat4 proj;
+	glm::vec2 camorient;
+
+	glm::vec2 prevm;
 
 	void tick();
 };
