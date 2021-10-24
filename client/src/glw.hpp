@@ -278,16 +278,19 @@ namespace glw {
 		inline void drawArrays(size_t verts, GLenum mode=GL_TRIANGLES, size_t off=0) const { glDrawArrays(mode, off, verts); }
 		inline void drawArraysInstanced(size_t instances, size_t verts, GLenum mode=GL_TRIANGLES, size_t off=0) const { glDrawArraysInstanced(mode, off, verts, instances); }
 		inline void drawElements(size_t verts, GLenum mode=GL_TRIANGLES, GLenum itype=GL_UNSIGNED_INT) const { glDrawElements(mode, verts, itype, (void *)0); }
+		inline void setVAP(unsigned int i, size_t stride, const vap &v) {
+			glVertexAttribPointer(i, v.size, v.type, v.normalized, stride, (void *)v.offset);
+			glEnableVertexAttribArray(i);
+		}
 		inline void setVAPs(size_t stride, const std::initializer_list<vap> &vaps) {
 			int i = 0;
 			for (const vap &v : vaps) {
-				glVertexAttribPointer(i, v.size, v.type, v.normalized, stride, (void *)v.offset);
-				glEnableVertexAttribArray(i++);
+				setVAP(i++, stride, v);
 			}
 		}
 		inline void disableVAPs(size_t count) {
 			for (int i = count; i;) {
-				glEnableVertexAttribArray(--i);
+				glDisableVertexAttribArray(--i);
 			}
 		}
 		static vao null;
@@ -597,6 +600,16 @@ namespace glw {
 	template<size_t size>
 	using tex3_array = texture_array<size, tex3>;
 	using tex3_dynamic_array = dynamic_texture_array<tex3>;
+
+	template<typename F>
+	void loadTex2(tex2 &t, const char *file, F onErr, const std::string &emsg,
+		GLenum wraps=GL_CLAMP_TO_EDGE, GLenum wrapt=GL_CLAMP_TO_EDGE, GLenum min=GL_LINEAR, GLenum mag=GL_LINEAR,
+		GLenum usedChannels=GL_RGBA, GLenum dataChannels=GL_RGBA8) {
+		t.gen();
+		t.bind();
+		t.setWrapFilter({wraps, wrapt}, min, mag);
+		t.fromFile(file, onErr, emsg, usedChannels, dataChannels);
+	}
 
 	// -------------------------------------------- FRAMEBUFFERS ----------------------------------
 
