@@ -16,7 +16,7 @@ public:
 	void no_event_mainloop();
 	void resize(int ww, int wh);
 private:
-	float dt, tim;
+	float dt;
 	int ww, wh;
 
 	glw::vao quad;
