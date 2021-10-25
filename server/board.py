@@ -23,6 +23,9 @@ class Board():
         self.boardLayout = generatedBoard
         return self.boardLayout
 
+    def getBoard(self):
+        return self.boardLayout
+
 def spinLetters(input: str, spin: int) -> str:
     output = ""
     letters = ["t", "r", "b", "l"]
