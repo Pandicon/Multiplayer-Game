@@ -18,7 +18,6 @@ uniform sampler2D texspec;
 uniform sampler2D sundepth;
 uniform sampler2D lampdepth;
 
-const float gamma = 2.2;
 const float specfactor = 0.5;
 const float bias = 0.005;
 
@@ -52,5 +51,4 @@ void main() {
 		spec = sampledspec.xyz * light.y * lampcol;
 	}
 	outcol = vec4(col * (diff + spec), 1);
-	outcol.rgb = pow(outcol.rgb, vec3(1.0/gamma));
 }

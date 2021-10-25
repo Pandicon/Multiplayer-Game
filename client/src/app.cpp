@@ -17,7 +17,6 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cout << "OpenGL load failed. Does your graphics card support OpenGL 4.0 core?" << std::endl;
 	}
-	resize(ww, wh);
 
 	auto now = std::chrono::system_clock::now();
 	time_t tnow = std::chrono::system_clock::to_time_t(now);
@@ -164,8 +163,23 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	lampfbo.attach(lampdepth, GL_DEPTH_ATTACHMENT);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
+	postfbo.gen();
+	posttex.gen();
+	posttex.bind();
+	posttex.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
+	posttex.size = glm::ivec2(ww, wh);
+	posttex.upload(NULL, GL_RGBA, GL_RGBA16F, GL_FLOAT);
+	postdepth.gen();
+	postdepth.bind();
+	postdepth.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
+	postdepth.size = glm::ivec2(ww, wh);
+	postdepth.upload(NULL, GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
+	postfbo.bind();
+	postfbo.attach(posttex, GL_COLOR_ATTACHMENT0);
+	postfbo.attach(postdepth, GL_DEPTH_STENCIL_ATTACHMENT);
 	glw::fbo::screen.bind();
 	glw::checkError("init check", glw::justPrint);
+	resize(ww, wh);
 }
 void app::mainloop() {
 	double prev = glfwGetTime();
@@ -194,6 +208,12 @@ void app::resize(int ww, int wh) {
 	this->ww = ww;
 	this->wh = wh;
 	proj = glm::perspective(2.f, static_cast<float>(ww) / wh, .1f, 100.f);
+	posttex.bind();
+	posttex.size = glm::ivec2(ww, wh);
+	posttex.upload(NULL, GL_RGBA, GL_RGBA16F, GL_FLOAT);
+	postdepth.bind();
+	postdepth.size = glm::ivec2(ww, wh);
+	postdepth.upload(NULL, GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
 }
 
 void app::tick() {
@@ -232,7 +252,7 @@ void app::tick() {
 	}
 
 	glEnable(GL_CULL_FACE);
-	glw::fbo::screen.bind();
+	postfbo.bind();
 	glViewport(0, 0, ww, wh);
 	glClearColor(skycol.x, skycol.y, skycol.z, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -248,6 +268,15 @@ void app::tick() {
 	sundepth.bind(GL_TEXTURE2);
 	lampdepth.bind(GL_TEXTURE3);
 	render(vp, sh3d);
+	
+	glDisable(GL_DEPTH_TEST);
+	glw::fbo::screen.bind();
+	postsh.use();
+	postsh.uniformM4f("proj", glm::mat4(1.f));
+	postsh.uniform1f("exposure", 1.5f);
+	posttex.bind(GL_TEXTURE0);
+	quad.bind();
+	quad.drawElements(6);
 	glw::checkError("tick end check", glw::justPrint);
 }
 void app::render(const glm::mat4 &vp, glw::shader &sh) {

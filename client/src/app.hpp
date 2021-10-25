@@ -40,6 +40,8 @@ private:
 	glw::tex2 blacktex;
 
 	glw::fbo postfbo;
+	glw::tex2 posttex;
+	glw::tex2 postdepth;
 	glw::fbo sunfbo;
 	glw::tex2 sundepth;
 	glw::fbo lampfbo;
