@@ -169,6 +169,11 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	posttex.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
 	posttex.size = glm::ivec2(ww, wh);
 	posttex.upload(NULL, GL_RGBA, GL_RGBA16F, GL_FLOAT);
+	posttexover.gen();
+	posttexover.bind();
+	posttexover.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
+	posttexover.size = glm::ivec2(ww, wh);
+	posttexover.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
 	postdepth.gen();
 	postdepth.bind();
 	postdepth.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
@@ -176,6 +181,7 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	postdepth.upload(NULL, GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
 	postfbo.bind();
 	postfbo.attach(posttex, GL_COLOR_ATTACHMENT0);
+	postfbo.attach(posttexover, GL_COLOR_ATTACHMENT1);
 	postfbo.attach(postdepth, GL_DEPTH_STENCIL_ATTACHMENT);
 	glw::fbo::screen.bind();
 	glw::checkError("init check", glw::justPrint);
@@ -211,6 +217,9 @@ void app::resize(int ww, int wh) {
 	posttex.bind();
 	posttex.size = glm::ivec2(ww, wh);
 	posttex.upload(NULL, GL_RGBA, GL_RGBA16F, GL_FLOAT);
+	posttexover.bind();
+	posttexover.size = glm::ivec2(ww, wh);
+	posttexover.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
 	postdepth.bind();
 	postdepth.size = glm::ivec2(ww, wh);
 	postdepth.upload(NULL, GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);

@@ -5,6 +5,7 @@ in vec2 tpos;
 in vec4 sunrpos;
 in vec4 lamprpos;
 out vec4 outcol;
+out vec4 outcolover;
 
 uniform vec3 suncol;
 uniform vec3 lampcol;
@@ -51,4 +52,5 @@ void main() {
 		spec = sampledspec.xyz * light.y * lampcol;
 	}
 	outcol = vec4(col * (diff + spec), 1);
+	outcolover = vec4(outcol.rgb - 1.2, 1);
 }
