@@ -2,8 +2,8 @@
 in vec2 tpos;
 out vec4 outcol;
 
-uniform vec3 col;
+uniform sampler2D tex;
 
 void main() {
-	outcol = vec4(col, 1);
+	outcol = vec4(vec3(texture(tex, tpos).r), 1);
 }

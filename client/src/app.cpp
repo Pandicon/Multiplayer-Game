@@ -7,7 +7,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 constexpr float CAM_DIST = 1.6f;
+constexpr float SUN_DIST = 1000;
 constexpr float SENSITIVITY = 0.01f;
+constexpr int SHADOW_RESOLUTION = 1024;
 
 app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	w = glfwCreateWindow(ww, wh, title, NULL, NULL);
@@ -29,14 +31,14 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	sunpos = glm::vec3(sinf(dayprogress*2.f*glm::pi<float>()), -cosf(dayprogress*2.f*glm::pi<float>()), 0.f);
 	skycol = glm::vec3(.2f, .7f, 1.f) * (sunpos.y < 0 ? 0 : sunpos.y);
 	lamp = sunpos.y < 0.1f;
-	lamppos = glm::vec3(0.f, 1.f, 0.f);
-	sunpos *= 1000;
+	lamppos = glm::vec3(0.f, 1.0f, 0.1f);
+	sunpos *= SUN_DIST;
 
 	float quadverts[] = {
 		-1, -1, 0, 0,
-		-1,  1, 0, 1,
-		 1,  1, 1, 1,
 		 1, -1, 1, 0,
+		 1,  1, 1, 1,
+		-1,  1, 0, 1,
 	};
 	unsigned int quadindices[] = {
 		0, 1, 2,
@@ -107,11 +109,18 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 		wallindices, sizeof(wallindices), sizeof(float)*8,
 		{glw::vap(3), glw::vap(3, sizeof(float)*3), glw::vap(2, sizeof(float)*6)});
 	robot.load("./models/robot.obj");
+
 	glw::compileShaderFromFile(postsh, "./shaders/post", glw::default_shader_error_handler());
+	postsh.use();
+	postsh.uniform1i("tex", 0);
 	glw::compileShaderFromFile(sh3d, "./shaders/s3", glw::default_shader_error_handler());
 	sh3d.use();
 	sh3d.uniform1i("tex", 0);
 	sh3d.uniform1i("texspec", 1);
+	sh3d.uniform1i("sundepth", 2);
+	sh3d.uniform1i("lampdepth", 3);
+	glw::compileShaderFromFile(lightsh, "./shaders/light", glw::default_shader_error_handler());
+
 	boardtex.gen();
 	boardtex[0].bind();
 	boardtex[0].setWrapFilter({GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE}, GL_LINEAR, GL_LINEAR);
@@ -134,6 +143,28 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	blacktex.bind();
 	blacktex.setWrapFilter({GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
 	blacktex.fromFile("./textures/black.png", glw::justPrint, "Could not find", GL_RGBA, GL_SRGB_ALPHA);
+
+	sunfbo.gen();
+	sundepth.gen();
+	sundepth.bind();
+	sundepth.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
+	sundepth.size = glm::ivec2(SHADOW_RESOLUTION, SHADOW_RESOLUTION);
+	sundepth.upload(NULL, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
+	sunfbo.bind();
+	sunfbo.attach(sundepth, GL_DEPTH_ATTACHMENT);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	lampfbo.gen();
+	lampdepth.gen();
+	lampdepth.bind();
+	lampdepth.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
+	lampdepth.size = glm::ivec2(SHADOW_RESOLUTION, SHADOW_RESOLUTION);
+	lampdepth.upload(NULL, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
+	lampfbo.bind();
+	lampfbo.attach(lampdepth, GL_DEPTH_ATTACHMENT);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glw::fbo::screen.bind();
 	glw::checkError("init check", glw::justPrint);
 }
 void app::mainloop() {
@@ -145,7 +176,7 @@ void app::mainloop() {
 		tick();
 		glfwSwapBuffers(w);
 		glfwPollEvents();
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(30));
 	}
 }
 void app::no_event_mainloop() {
@@ -156,11 +187,12 @@ void app::no_event_mainloop() {
 		prev = now;
 		tick();
 		glfwSwapBuffers(w);
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(30));
 	}
 }
 void app::resize(int ww, int wh) {
-	glViewport(0, 0, ww, wh);
+	this->ww = ww;
+	this->wh = wh;
 	proj = glm::perspective(2.f, static_cast<float>(ww) / wh, .1f, 100.f);
 }
 
@@ -180,25 +212,49 @@ void app::tick() {
 	float camy = sinf(camorient.x);
 	float camz = cosf(camorient.y) * cosf(camorient.x);
 	glm::vec3 cam = glm::normalize(glm::vec3(camx, camy, camz)) * CAM_DIST;
-
-	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_CULL_FACE);
-	glClearColor(skycol.x, skycol.y, skycol.z, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glm::mat4 viewm = glm::lookAt(cam, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	glm::mat4 vp = proj * viewm;
 
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	sunfbo.bind();
+	glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glm::mat4 sproj = glm::lookAt(sunpos / SUN_DIST * 1.2f, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+	sproj = glm::ortho(-1.2f, 1.2f, -1.2f, 1.2f, 0.1f, 2.5f) * sproj;
+	render(sproj, lightsh);
+	glm::mat4 lproj = glm::lookAt(lamppos, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+	lproj = glm::perspective(2.f, 1.f, 0.1f, 2.5f) * lproj;
+	if (lamp) {
+		lampfbo.bind();
+		glClear(GL_DEPTH_BUFFER_BIT);
+		render(lproj, lightsh);
+	}
+
+	glEnable(GL_CULL_FACE);
+	glw::fbo::screen.bind();
+	glViewport(0, 0, ww, wh);
+	glClearColor(skycol.x, skycol.y, skycol.z, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	sh3d.use();
 	sh3d.uniform3f("suncol", 1, 1, 1);
-	sh3d.uniform3f("lampcol", 1, 1, .7f);
+	sh3d.uniform3f("lampcol", 1, 1, .3f);
 	sh3d.uniform3f("sunpos", sunpos);
 	sh3d.uniform3f("lamppos", lamppos);
 	sh3d.uniform1i("lampon", lamp);
 	sh3d.uniform3f("campos", cam);
-
-	sh3d.uniformM4f("proj", vp * glm::mat4(1.f));
-	sh3d.uniformM4f("model", glm::mat4(1.f));
-	sh3d.uniform3f("col", 1, 1, 1);
+	sh3d.uniformM4f("sunproj", sproj);
+	sh3d.uniformM4f("lampproj", lproj);
+	sundepth.bind(GL_TEXTURE2);
+	lampdepth.bind(GL_TEXTURE3);
+	render(vp, sh3d);
+	glw::checkError("tick end check", glw::justPrint);
+}
+void app::render(const glm::mat4 &vp, glw::shader &sh) {
+	sh.use();
+	sh.uniformM4f("proj", vp * glm::mat4(1.f));
+	sh.uniformM4f("model", glm::mat4(1.f));
+	sh.uniform3f("col", 1, 1, 1);
 	boardtex[0].bind(GL_TEXTURE0);
 	boardtex[1].bind(GL_TEXTURE1);
 	board.bind();
@@ -209,9 +265,9 @@ void app::tick() {
 			for (size_t side = 0; side < 4; ++side) {
 				glm::mat4 model = glm::rotate(glm::mat4(1.f), glm::pi<float>() * .5f * side, glm::vec3(0, 1, 0));
 				model = glm::translate(model, glm::vec3(x * 0.125f - 0.9375f, 0, y * 0.125f - 0.9375f));
-				sh3d.uniformM4f("proj", vp * model);
-				sh3d.uniformM4f("model", model);
-				sh3d.uniform3f("col", 1, 1, 1);
+				sh.uniformM4f("proj", vp * model);
+				sh.uniformM4f("model", model);
+				sh.uniform3f("col", 1, 1, 1);
 				walltex[0].bind(GL_TEXTURE0);
 				walltex[1].bind(GL_TEXTURE1);
 				wall.bind();
@@ -219,47 +275,45 @@ void app::tick() {
 			}
 		}
 	}
-	glm::mat4 model = glm::translate(glm::mat4(1.f),
-		glm::vec3(0 * 0.125f - 0.9375f, 0.001f, 0 * 0.125f - 0.9375f));
-	sh3d.uniformM4f("proj", vp * model);
-	sh3d.uniformM4f("model", model);
-	sh3d.uniform3f("col", 1, 1, 0);
+	glm::mat4 model =
+		glm::translate(glm::mat4(1.f), glm::vec3(0 * 0.125f - 0.9375f, 0.001f, 0 * 0.125f - 0.9375f));
+	sh.uniformM4f("proj", vp * model);
+	sh.uniformM4f("model", model);
+	sh.uniform3f("col", 1, 1, 0);
 	whitetex.bind(GL_TEXTURE0);
 	blacktex.bind(GL_TEXTURE1);
 	robot.vao.bind();
 	robot.draw();
-	model = glm::translate(glm::mat4(1.f), glm::vec3(0 * 0.125f - 0.9375f, 0.001f, 1 * 0.125f - 0.9375f));
-	sh3d.uniformM4f("proj", vp * model);
-	sh3d.uniformM4f("model", model);
-	sh3d.uniform3f("col", 1, 0, 0);
+	model = glm::translate(glm::mat4(1.f), glm::vec3(1 * 0.125f - 0.9375f, 0.001f, 0 * 0.125f - 0.9375f));
+	sh.uniformM4f("proj", vp * model);
+	sh.uniformM4f("model", model);
+	sh.uniform3f("col", 1, 0, 0);
 	whitetex.bind(GL_TEXTURE0);
 	blacktex.bind(GL_TEXTURE1);
 	robot.vao.bind();
 	robot.draw();
-	model = glm::translate(glm::mat4(1.f), glm::vec3(0 * 0.125f - 0.9375f, 0.001f, 2 * 0.125f - 0.9375f));
-	sh3d.uniformM4f("proj", vp * model);
-	sh3d.uniformM4f("model", model);
-	sh3d.uniform3f("col", 0, 0.7f, 0);
+	model = glm::translate(glm::mat4(1.f), glm::vec3(2 * 0.125f - 0.9375f, 0.001f, 0 * 0.125f - 0.9375f));
+	sh.uniformM4f("proj", vp * model);
+	sh.uniformM4f("model", model);
+	sh.uniform3f("col", 0, 0.7f, 0);
 	whitetex.bind(GL_TEXTURE0);
 	blacktex.bind(GL_TEXTURE1);
 	robot.vao.bind();
 	robot.draw();
 	model = glm::translate(glm::mat4(1.f), glm::vec3(0 * 0.125f - 0.9375f, 0.001f, 3 * 0.125f - 0.9375f));
-	sh3d.uniformM4f("proj", vp * model);
-	sh3d.uniformM4f("model", model);
-	sh3d.uniform3f("col", 0, 0, 1);
+	sh.uniformM4f("proj", vp * model);
+	sh.uniformM4f("model", model);
+	sh.uniform3f("col", 0, 0, 1);
 	whitetex.bind(GL_TEXTURE0);
 	blacktex.bind(GL_TEXTURE1);
 	robot.vao.bind();
 	robot.draw();
 	model = glm::translate(glm::mat4(1.f), glm::vec3(0 * 0.125f - 0.9375f, 0.001f, 4 * 0.125f - 0.9375f));
-	sh3d.uniformM4f("proj", vp * model);
-	sh3d.uniformM4f("model", model);
-	sh3d.uniform3f("col", .2f, .2f, .2f);
+	sh.uniformM4f("proj", vp * model);
+	sh.uniformM4f("model", model);
+	sh.uniform3f("col", .2f, .2f, .2f);
 	whitetex.bind(GL_TEXTURE0);
 	blacktex.bind(GL_TEXTURE1);
 	robot.vao.bind();
 	robot.draw();
-
-	glw::checkError("tick end check", glw::justPrint);
 }

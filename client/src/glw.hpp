@@ -277,7 +277,7 @@ namespace glw {
 		 */
 		inline void drawArrays(size_t verts, GLenum mode=GL_TRIANGLES, size_t off=0) const { glDrawArrays(mode, off, verts); }
 		inline void drawArraysInstanced(size_t instances, size_t verts, GLenum mode=GL_TRIANGLES, size_t off=0) const { glDrawArraysInstanced(mode, off, verts, instances); }
-		inline void drawElements(size_t verts, GLenum mode=GL_TRIANGLES, GLenum itype=GL_UNSIGNED_INT) const { glDrawElements(mode, verts, itype, (void *)0); }
+		inline void drawElements(size_t verts, GLenum mode=GL_TRIANGLES, GLenum itype=GL_UNSIGNED_INT, size_t off=0) const { glDrawElements(mode, verts, itype, (void *)off); }
 		inline void setVAP(unsigned int i, size_t stride, const vap &v) {
 			glVertexAttribPointer(i, v.size, v.type, v.normalized, stride, (void *)v.offset);
 			glEnableVertexAttribArray(i);

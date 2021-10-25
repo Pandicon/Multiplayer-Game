@@ -16,7 +16,8 @@ public:
 	void no_event_mainloop();
 	void resize(int ww, int wh);
 private:
-	float dt;
+	float dt, tim;
+	int ww, wh;
 
 	glw::vao quad;
 	glw::vbo quadvbo;
@@ -31,6 +32,7 @@ private:
 	
 	glw::shader postsh;
 	glw::shader sh3d;
+	glw::shader lightsh;
 
 	glw::tex2_array<2> boardtex;
 	glw::tex2_array<2> walltex;
@@ -38,7 +40,10 @@ private:
 	glw::tex2 blacktex;
 
 	glw::fbo postfbo;
-	glw::fbo lightfbo;
+	glw::fbo sunfbo;
+	glw::tex2 sundepth;
+	glw::fbo lampfbo;
+	glw::tex2 lampdepth;
 
 	glm::mat4 proj;
 	glm::vec2 camorient;
@@ -49,6 +54,7 @@ private:
 	bool lamp;
 
 	void tick();
+	void render(const glm::mat4 &vp, glw::shader &sh);
 };
 
 #endif

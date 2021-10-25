@@ -5,13 +5,19 @@ layout (location = 2) in vec2 texpos;
 out vec3 fpos;
 out vec3 norm;
 out vec2 tpos;
+out vec4 sunrpos;
+out vec4 lamprpos;
 
 uniform mat4 proj;
 uniform mat4 model;
+uniform mat4 sunproj;
+uniform mat4 lampproj;
 
 void main() {
 	gl_Position = proj * vec4(pos, 1);
 	fpos = (model * vec4(pos, 1)).xyz;
 	norm = normal;//mat3(transpose(inverse(model))) * normal;
 	tpos = texpos;
+	sunrpos = sunproj * model * vec4(pos, 1);
+	lamprpos = lampproj * model * vec4(pos, 1);
 }

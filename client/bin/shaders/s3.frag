@@ -2,6 +2,8 @@
 in vec3 fpos;
 in vec3 norm;
 in vec2 tpos;
+in vec4 sunrpos;
+in vec4 lamprpos;
 out vec4 outcol;
 
 uniform vec3 suncol;
@@ -13,17 +15,27 @@ uniform vec3 col;
 uniform vec3 campos;
 uniform sampler2D tex;
 uniform sampler2D texspec;
+uniform sampler2D sundepth;
+uniform sampler2D lampdepth;
 
 const float gamma = 2.2;
 const float specfactor = 0.5;
+const float bias = 0.005;
 
-vec2 calcLight(vec3 lpos, float ambient) {
+float getShadow(vec3 flpos, sampler2D smap) {
+	flpos = flpos * 0.5 + 0.5;
+	float closest = texture(smap, flpos.xy).r; 
+	return flpos.z - bias > closest ? 0.0 : 1.0;
+}
+
+vec2 calcLight(vec3 lpos, float ambient, vec4 flpos, sampler2D smap) {
 	vec3 lightdir = normalize(lpos - fpos);
 	vec3 viewDir = normalize(campos - fpos);
 	vec3 halfdir = normalize(lightdir + viewDir);
 	float diff = max(dot(norm, lightdir), 0.0);
 	float spec = pow(max(dot(norm, halfdir), 0.0), 8.0);
-	return vec2(ambient + diff, spec * specfactor);
+	float light = getShadow(flpos.xyz / flpos.w, smap);
+	return vec2(ambient + diff * light, spec * specfactor * light);
 }
 
 void main() {
@@ -31,14 +43,14 @@ void main() {
 	if (sampled.a < 0.5)
 		discard;
 	vec4 sampledspec = texture(texspec, tpos);
-	vec2 light = calcLight(sunpos, 0.3);
+	vec2 light = calcLight(sunpos, 0.3, sunrpos, sundepth);
 	vec3 diff = sampled.xyz * light.x * suncol;
 	vec3 spec = sampledspec.xyz * light.y * suncol;
 	if (lampon) {
-		light = calcLight(lamppos, 0.1);
+		light = calcLight(lamppos, 0.1, lamprpos, lampdepth);
 		diff = sampled.xyz * light.x * lampcol;
 		spec = sampledspec.xyz * light.y * lampcol;
 	}
 	outcol = vec4(col * (diff + spec), 1);
-    outcol.rgb = pow(outcol.rgb, vec3(1.0/gamma));
+	outcol.rgb = pow(outcol.rgb, vec3(1.0/gamma));
 }
