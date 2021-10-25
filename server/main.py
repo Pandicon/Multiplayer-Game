@@ -1,74 +1,66 @@
-import random
+import socket
+import pickle
+import threading
+import sys
+
+from board import Board
 from configHandler import loadConfigData
 
 def main():
-    configData = loadConfigData()
-    generatedBoard = generateBoard()
-    print(generatedBoard)
+    board = Board()
+    board.generateBoard()
+    mainConfig = loadConfigData("../config.json")
+    HEADER = mainConfig["HEADER"]
+    PORT = mainConfig["PORT"]
+    SERVER_IP = socket.gethostbyname(socket.gethostname())
+    ENCODE_FORMAT = mainConfig["ENCODE_FORMAT"]
+    DISCONNECT_MESSAGE = mainConfig["DISCONNECT_MESSAGE"]
+    SERVER_ADDRESS = (SERVER_IP, PORT)
 
-def generateBoard(wallsToBool = True):
-    configData = loadConfigData()
-    gameboardTemplate = configData["gameboard"]
-    shuffledGameboardParts = gameboardTemplate
-    random.shuffle(shuffledGameboardParts)
-    generatedBoard = [[], [], [], []]
-    for i in range(len(shuffledGameboardParts)):
-        quarter = shuffledGameboardParts[i]
-        if quarter == 0:
-            continue
-        for n in range(len(quarter)):
-            quarter[n] = spinTile(quarter[n], i)
-            if wallsToBool:
-                quarter[n][1][1] = tileWallsStrToBool(quarter[n][1][1])
-        generatedBoard[i] = quarter
-    return generatedBoard
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(SERVER_ADDRESS)
 
-def spinLetters(input: str, spin: int) -> str:
-    output = ""
-    letters = ["t", "r", "b", "l"]
-    for letter in input:
-        output += letters[(letters.index(letter)+spin)%4]
-    return output
+    print("[STARTING] Server is starting...")
 
-def spinCoords(input: list, spin: int) -> list[int]:
-    max = 7
-    x = input[0] - (max/2)
-    y = input[1] - (max/2)
-    tempX = x
-    for i in range(spin%4):
-        x = y
-        y = -tempX
-        tempX = x
-    x += 3.5
-    y += 3.5
-    return [int(x), int(y)]
+    server.listen()
+    print(f"[LISTENING] Server is listening on IP {SERVER_IP} and port {PORT}")
 
-def spinTile(input: list, spin: int) -> list:
-    coords = input[0]
-    tileInfo = input[1]
-    letters = tileInfo[1]
-    coords = spinCoords(coords, spin)
-    letters = spinLetters(letters, spin)
-    tileInfo[1] = letters
-    return [coords, tileInfo]
+    while True:
+        connection, address = server.accept()
+        thread = threading.Thread(target=handleClient, args=(connection, address, HEADER, ENCODE_FORMAT, DISCONNECT_MESSAGE))
+        thread.start()
+        print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
 
-def tileWallsStrToBool(walls: str) -> list[bool]:
-    output = []
-    letters = ["t", "r", "b", "l"]
-    for i in range(len(letters)):
-        if letters[i] in walls:
-            output.append(True)
-        else:
-            output.append(False)
-    return output
+def handleClient(connection, address, header, encode_format, disconnect_message):
+    print(f"[NEW CONNECTION] {address} connected.")
 
-def tileWallsBoolToStr(walls: list[bool]) -> str:
-    output = ""
-    letters = ["t", "r", "b", "l"]
-    for i in range(len(walls)):
-        if walls[i]:
-            output += letters[i]
-    return output
+    connected = True
+    while connected:
+        message_length = connection.recv(header).decode(encode_format)
+        if not message_length:
+            print(f"[MESSAGE ERROR] Didn't receive a message, disconnecting client {address}")
+            connected = False
+            break
+        message_length = int(message_length)
+        message = pickle.loads(connection.recv(message_length))
+        if message == disconnect_message:
+            print(f"[DISCONNECT] Message to disconnect received, disconnecting {address}")
+            connected = False
+            send(connection, "Disconnecting due to such request", header, encode_format)
+            break
+
+        print(f"[{address}] {message}")
+        send(connection, "Message received", header, encode_format)
+
+    connection.close()
+
+def send(connection, message, header, encode_format):
+    message = pickle.dumps(message)
+    msg_length = sys.getsizeof(message)
+    send_length = str(msg_length).encode(encode_format)
+    send_length += b' ' * (header - len(send_length))
+    connection.send(send_length)
+    connection.send(message)
 
 if __name__ == "__main__":
     main()
