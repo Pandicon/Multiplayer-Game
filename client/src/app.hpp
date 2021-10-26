@@ -33,6 +33,7 @@ private:
 	glw::shader postsh;
 	glw::shader sh3d;
 	glw::shader lightsh;
+	glw::shader blursh;
 
 	glw::tex2_array<2> boardtex;
 	glw::tex2_array<2> walltex;
@@ -43,6 +44,10 @@ private:
 	glw::tex2 posttex;
 	glw::tex2 posttexover;
 	glw::tex2 postdepth;
+	glw::fbo tmpfbo;
+	glw::tex2 tmptex;
+	glw::fbo tmp2fbo;
+	glw::tex2 tmp2tex;
 	glw::fbo sunfbo;
 	glw::tex2 sundepth;
 	glw::fbo lampfbo;

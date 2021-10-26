@@ -105,6 +105,7 @@ namespace glw {
 			o.exists = false; // So it doesn't delete the object in destructor
 			return o;
 		}
+		inline void swap(glarray<size, T, genFun, delFun> &o) { std::swap(ids, o.ids); }
 	};
 	template<typename T, genFunT genFun, delFunT delFun>
 	class dynamic_glarray {
@@ -122,6 +123,7 @@ namespace glw {
 			o.exists = false; // So it doesn't delete the object in destructor
 			return o;
 		}
+		inline void swap(dynamic_glarray<T, genFun, delFun> &o) { std::swap(ids, o.ids); }
 	};
 
 	// ------------------------------------------------------- BUFFERS --------------------------------------
@@ -179,6 +181,8 @@ namespace glw {
 		 * @param target binding target (default {defaulttarget})
 		 */
 		inline void update(const void *data, size_t size, size_t off=0, GLenum target=defaulttarget) { glBufferSubData(target, off, size, data); }
+		template<GLenum def2>
+		inline void swap(buffer<def2> &o) { std::swap(id, o.id); }
 	};
 	inline void call_glGenBuffers(GLsizei s, GLuint *ids) { glGenBuffers(s, ids); }
 	inline void call_glDeleteBuffers(GLsizei s, const GLuint *ids) { glDeleteBuffers(s, ids); }
@@ -293,6 +297,7 @@ namespace glw {
 				glDisableVertexAttribArray(--i);
 			}
 		}
+		inline void swap(vao &o) { std::swap(id, o.id); }
 		static vao null;
 	};
 	inline void call_glGenVertexArrays(GLsizei s, GLuint *ids) { glGenVertexArrays(s, ids); }
@@ -389,6 +394,7 @@ namespace glw {
 				errorHandler.compilation(id, type, compiled, infolog);
 			}
 		}
+		inline void swap(shader_part<type> &o) { std::swap(id, o.id); }
 	};
 	using vertex_shader = shader_part<GL_VERTEX_SHADER>;
 	using fragment_shader = shader_part<GL_FRAGMENT_SHADER>;
@@ -460,6 +466,7 @@ namespace glw {
 				errorHandler.linking(id, compiled, infolog);
 			}
 		}
+		inline void swap(shader &o) { std::swap(id, o.id); }
 	};
 	template<typename F>
 	inline void compileShader(shader &sh, const char *vsrc, const char *fsrc, F errorHandler) {
@@ -553,6 +560,7 @@ namespace glw {
 			setWrapping(wraps);
 			setFiltering(min, mag);
 		}
+		inline void swap(texture<dims, gldims> &o) { std::swap(id, o.id); }
 	};
 
 	using texture1 = texture<1, GL_TEXTURE_1D>;
@@ -582,6 +590,7 @@ namespace glw {
 			}
 			freedata(data);
 		}
+		inline void swap(tex2 &o) { std::swap(id, o.id); }
 	};
 	using tex3 = texture3;
 
@@ -644,6 +653,7 @@ namespace glw {
 		inline void del() { glDeleteRenderbuffers(1, &id); exists = false; }
 		inline void bind(GLenum target=GL_RENDERBUFFER) const { glBindRenderbuffer(target, id); }
 		inline void allocate(int w, int h, GLenum format, GLenum target=GL_RENDERBUFFER) { glRenderbufferStorage(target, format, w, h); }
+		inline void swap(rbo &o) { std::swap(id, o.id); }
 	};
 	/**
 	 * @brief wrapper for framebuffer - 
@@ -680,6 +690,7 @@ namespace glw {
 		inline void attach(const texture2 &t, GLenum attachment=GL_COLOR_ATTACHMENT0, GLenum target=GL_FRAMEBUFFER) { glFramebufferTexture2D(target, attachment, GL_TEXTURE_2D, t.id, 0); }
 		inline void attach(const texture3 &t, GLenum attachment=GL_COLOR_ATTACHMENT0, int zoffset=0, GLenum target=GL_FRAMEBUFFER) { glFramebufferTexture3D(target, attachment, GL_TEXTURE_3D, t.id, 0, zoffset); }
 		inline void attach(const rbo &r, GLenum attachment=GL_COLOR_ATTACHMENT0, GLenum rbotarget=GL_RENDERBUFFER, GLenum target=GL_FRAMEBUFFER) { glFramebufferRenderbuffer(target, attachment, rbotarget, r.id); }
+		inline void swap(fbo &o) { std::swap(id, o.id); }
 		
 		inline static bool complete(GLenum target=GL_FRAMEBUFFER) { return glCheckFramebufferStatus(target) == GL_FRAMEBUFFER_COMPLETE; }
 		static fbo screen;
@@ -707,6 +718,7 @@ namespace glw {
 				v1 = texid / h / static_cast<float>(h);
 				v2 = (texid / h + 1) / static_cast<float>(h);
 			}
+			inline void swap(tiledTextureAtlas<w, h> &o) { atlas.swap(o.atlas); }
 		};
 		template<size_t ttaw, size_t ttah>
 		inline void rendStr(const std::string &str, float x, float y, float w, float h, float space, const tiledTextureAtlas<ttaw,ttah> &font) {

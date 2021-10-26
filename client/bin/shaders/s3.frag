@@ -4,8 +4,8 @@ in vec3 norm;
 in vec2 tpos;
 in vec4 sunrpos;
 in vec4 lamprpos;
-out vec4 outcol;
-out vec4 outcolover;
+layout (location = 0) out vec4 outcol;
+layout (location = 1) out vec4 outcolover;
 
 uniform vec3 suncol;
 uniform vec3 lampcol;
@@ -52,5 +52,9 @@ void main() {
 		spec = sampledspec.xyz * light.y * lampcol;
 	}
 	outcol = vec4(col * (diff + spec), 1);
-	outcolover = vec4(outcol.rgb - 1.2, 1);
+	float brightness = dot(outcol.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if(brightness > 1.2)
+        outcolover = vec4(outcol.rgb, 1.0);
+    else
+        outcolover = vec4(0.0, 0.0, 0.0, 1.0);
 }

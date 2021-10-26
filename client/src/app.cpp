@@ -112,6 +112,7 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	glw::compileShaderFromFile(postsh, "./shaders/post", glw::default_shader_error_handler());
 	postsh.use();
 	postsh.uniform1i("tex", 0);
+	postsh.uniform1i("bloom", 1);
 	glw::compileShaderFromFile(sh3d, "./shaders/s3", glw::default_shader_error_handler());
 	sh3d.use();
 	sh3d.uniform1i("tex", 0);
@@ -119,6 +120,9 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	sh3d.uniform1i("sundepth", 2);
 	sh3d.uniform1i("lampdepth", 3);
 	glw::compileShaderFromFile(lightsh, "./shaders/light", glw::default_shader_error_handler());
+	glw::compileShaderFromFile(blursh, "./shaders/pass.vert", "./shaders/blur.frag", glw::default_shader_error_handler());
+	blursh.use();
+	blursh.uniform1i("tex", 0);
 
 	boardtex.gen();
 	boardtex[0].bind();
@@ -163,6 +167,22 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	lampfbo.attach(lampdepth, GL_DEPTH_ATTACHMENT);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
+	tmpfbo.gen();
+	tmptex.gen();
+	tmptex.bind();
+	tmptex.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
+	tmptex.size = glm::ivec2(ww, wh);
+	tmptex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
+	tmpfbo.bind();
+	tmpfbo.attach(tmptex, GL_COLOR_ATTACHMENT0);
+	tmp2fbo.gen();
+	tmp2tex.gen();
+	tmp2tex.bind();
+	tmp2tex.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
+	tmp2tex.size = glm::ivec2(ww, wh);
+	tmp2tex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
+	tmp2fbo.bind();
+	tmp2fbo.attach(tmp2tex, GL_COLOR_ATTACHMENT0);
 	postfbo.gen();
 	posttex.gen();
 	posttex.bind();
@@ -183,6 +203,8 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	postfbo.attach(posttex, GL_COLOR_ATTACHMENT0);
 	postfbo.attach(posttexover, GL_COLOR_ATTACHMENT1);
 	postfbo.attach(postdepth, GL_DEPTH_STENCIL_ATTACHMENT);
+	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, attachments);
 	glw::fbo::screen.bind();
 	glw::checkError("init check", glw::justPrint);
 	resize(ww, wh);
@@ -223,6 +245,12 @@ void app::resize(int ww, int wh) {
 	postdepth.bind();
 	postdepth.size = glm::ivec2(ww, wh);
 	postdepth.upload(NULL, GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
+	tmptex.bind();
+	tmptex.size = glm::ivec2(ww, wh);
+	tmptex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
+	tmp2tex.bind();
+	tmp2tex.size = glm::ivec2(ww, wh);
+	tmp2tex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
 }
 
 void app::tick() {
@@ -245,7 +273,7 @@ void app::tick() {
 	glm::mat4 vp = proj * viewm;
 
 	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	sunfbo.bind();
 	glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -260,14 +288,20 @@ void app::tick() {
 		render(lproj, lightsh);
 	}
 
-	glEnable(GL_CULL_FACE);
 	postfbo.bind();
 	glViewport(0, 0, ww, wh);
+	
+	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(1, attachments + 1);
+	glClearColor(0, 0, 0, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDrawBuffers(1, attachments);
 	glClearColor(skycol.x, skycol.y, skycol.z, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDrawBuffers(2, attachments);
 	sh3d.use();
 	sh3d.uniform3f("suncol", 1, 1, 1);
-	sh3d.uniform3f("lampcol", 1, 1, .3f);
+	sh3d.uniform3f("lampcol", 1, 1, .6f);
 	sh3d.uniform3f("sunpos", sunpos);
 	sh3d.uniform3f("lamppos", lamppos);
 	sh3d.uniform1i("lampon", lamp);
@@ -279,12 +313,26 @@ void app::tick() {
 	render(vp, sh3d);
 	
 	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	bool horizontal = 1;
+	quad.bind();
+	blursh.use();
+	for (size_t i = 0; i < 8; ++i, horizontal = !horizontal) {
+		tmpfbo.bind();
+		if (i == 0)
+			posttexover.bind(GL_TEXTURE0);
+		else
+			tmp2tex.bind(GL_TEXTURE0);
+		blursh.uniform1i("horizontal", horizontal);
+		quad.drawElements(6);
+		tmpfbo.swap(tmp2fbo);
+		tmptex.swap(tmp2tex);
+	}
 	glw::fbo::screen.bind();
 	postsh.use();
-	postsh.uniformM4f("proj", glm::mat4(1.f));
 	postsh.uniform1f("exposure", 1.5f);
 	posttex.bind(GL_TEXTURE0);
-	quad.bind();
+	tmp2tex.bind(GL_TEXTURE1);
 	quad.drawElements(6);
 	glw::checkError("tick end check", glw::justPrint);
 }
@@ -317,7 +365,7 @@ void app::render(const glm::mat4 &vp, glw::shader &sh) {
 		glm::translate(glm::mat4(1.f), glm::vec3(0 * 0.125f - 0.9375f, 0.001f, 0 * 0.125f - 0.9375f));
 	sh.uniformM4f("proj", vp * model);
 	sh.uniformM4f("model", model);
-	sh.uniform3f("col", 1, 1, 0);
+	sh.uniform3f("col", 10, 10, 0);
 	whitetex.bind(GL_TEXTURE0);
 	blacktex.bind(GL_TEXTURE1);
 	robot.vao.bind();
