@@ -68,8 +68,8 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	const float wex = -.046875f;
 	const float wsy =  .0f;
 	const float wey =  .03f;
-	const float wsz = -.062499;
-	const float wez =  .062499f;
+	const float wsz = -.06249;
+	const float wez =  .06249f;
 	float wallverts[] = {
 	//  position       normal    texture-pos
 		wsx, wsy, wsz, -1, 0, 0, 0, .5f,
