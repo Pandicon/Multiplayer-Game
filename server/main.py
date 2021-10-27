@@ -1,19 +1,16 @@
 import socket
-import pickle
 import threading
-import sys
 
 from board import Board
+from packet import Packet
 from configHandler import loadConfigData
 
 def main():
     board = Board()
     board.generateBoard()
     mainConfig = loadConfigData("../config.json")
-    HEADER = mainConfig["HEADER"]
     PORT = mainConfig["PORT"]
     SERVER_IP = socket.gethostbyname(socket.gethostname())
-    ENCODE_FORMAT = mainConfig["ENCODE_FORMAT"]
     DISCONNECT_MESSAGE = mainConfig["DISCONNECT_MESSAGE"]
     SERVER_ADDRESS = (SERVER_IP, PORT)
 
@@ -27,40 +24,36 @@ def main():
 
     while True:
         connection, address = server.accept()
-        thread = threading.Thread(target=handleClient, args=(connection, address, HEADER, ENCODE_FORMAT, DISCONNECT_MESSAGE))
+        thread = threading.Thread(target=handleClient, args=(connection, address, DISCONNECT_MESSAGE))
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
 
-def handleClient(connection, address, header, encode_format, disconnect_message):
+def handleClient(connection: socket.socket, address: socket._RetAddress, disconnect_message):
     print(f"[NEW CONNECTION] {address} connected.")
 
     connected = True
     while connected:
-        message_length = connection.recv(header).decode(encode_format)
-        if not message_length:
-            print(f"[MESSAGE ERROR] Didn't receive a message, disconnecting client {address}")
-            connected = False
-            break
-        message_length = int(message_length)
-        message = pickle.loads(connection.recv(message_length))
+        messageType, message = receive(connection, 1024)
         if message == disconnect_message:
             print(f"[DISCONNECT] Message to disconnect received, disconnecting {address}")
             connected = False
-            send(connection, "Disconnecting due to such request", header, encode_format)
+            send(connection, "Disconnecting due to such request", 255)
             break
 
         print(f"[{address}] {message}")
-        send(connection, "Message received", header, encode_format)
+        send(connection, "Message received", 255)
 
     connection.close()
 
-def send(connection, message, header, encode_format):
-    message = pickle.dumps(message)
-    msg_length = sys.getsizeof(message)
-    send_length = str(msg_length).encode(encode_format)
-    send_length += b' ' * (header - len(send_length))
-    connection.send(send_length)
-    connection.send(message)
+def send(connection: socket.socket, message: str, messageType: int):
+    packet = Packet(messageType, message)
+    packed = packet.pack()
+    connection.send(packed)
+
+def receive(connection: socket.socket, length: int):
+    received_packet = connection.recv(length)
+    packet = Packet()
+    return packet.unpack(received_packet)
 
 if __name__ == "__main__":
     main()
