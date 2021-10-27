@@ -28,7 +28,7 @@ def main():
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
 
-def handleClient(connection: socket.socket, address: socket._RetAddress, disconnect_message):
+def handleClient(connection: socket.socket, address, disconnect_message):
     print(f"[NEW CONNECTION] {address} connected.")
 
     connected = True
