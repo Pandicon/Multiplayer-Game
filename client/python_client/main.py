@@ -2,7 +2,7 @@ from configHandler import loadConfigData
 from clientClass import Client
 
 def main():
-    mainConfig = loadConfigData("../config.json")
+    mainConfig = loadConfigData("../../config.json")
     PORT = mainConfig["PORT"]
     SERVER_IP = mainConfig["SERVER_IP"]
     DISCONNECT_MESSAGE = mainConfig["DISCONNECT_MESSAGE"]

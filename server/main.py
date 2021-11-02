@@ -4,13 +4,15 @@ import threading
 from board import Board
 from packet import Packet
 from configHandler import loadConfigData
+from utils import getPublicIP, getLocalIP
 
 def main():
     board = Board()
     board.generateBoard()
     mainConfig = loadConfigData("../config.json")
+    serverMode = mainConfig["SERVER_MODE"]
     PORT = mainConfig["PORT"]
-    SERVER_IP = socket.gethostbyname(socket.gethostname())
+    SERVER_IP = getPublicIP() if serverMode == "public" else getLocalIP()
     DISCONNECT_MESSAGE = mainConfig["DISCONNECT_MESSAGE"]
     SERVER_ADDRESS = (SERVER_IP, PORT)
 
