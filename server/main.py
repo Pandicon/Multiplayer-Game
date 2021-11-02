@@ -47,13 +47,12 @@ def handleClient(connection: socket.socket, address, disconnect_message):
 
 def send(connection: socket.socket, message: str, messageType: int):
     packet = Packet(messageType, message)
-    packed = packet.pack()
-    connection.send(packed)
+    connection.send(packet.pack())
 
 def receive(connection: socket.socket, length: int):
     received_packet = connection.recv(length)
-    packet = Packet()
-    return packet.unpack(received_packet)
+    pckt = Packet.unpack(received_packet)
+    return pckt.type, pckt.extract()
 
 if __name__ == "__main__":
     main()
