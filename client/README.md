@@ -34,7 +34,11 @@ include
 |
 +--+ boost
    +--+ asio
-      + <asio headers>
+   |  + <asio headers>
+   |
+   +--+ asio.hpp
+   |
+   +--+ <some more stuff>
 ```
 # Compilation
 Compiling should be pretty easy once you setup libraries. Just use CMake, for example this way:
