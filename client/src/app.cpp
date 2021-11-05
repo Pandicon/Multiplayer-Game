@@ -11,7 +11,11 @@ constexpr float SUN_DIST = 1000;
 constexpr float SENSITIVITY = 0.01f;
 constexpr int SHADOW_RESOLUTION = 1024;
 
-app::app(int ww, int wh, const char *title) : camorient(1, 0), ww(ww), wh(wh) {
+void onRecv(packet &p, void *data) {
+	((app *)data)->recv(p);
+}
+
+app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), camorient(1, 0) {
 	w = glfwCreateWindow(ww, wh, title, NULL, NULL);
 	glfwMakeContextCurrent(w);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -21,6 +25,13 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0), ww(ww), wh(wh) {
 	initRendering();
 	glw::checkError("init check", glw::justPrint);
 	resize(ww, wh);
+
+	cl.connect("127.0.0.1", "5050");
+	char data[] = "\xFFHello from C++!";
+	cl.send(packet(data, 17));
+}
+app::~app() {
+	cl.disconnect();
 }
 void app::mainloop() {
 	double prev = glfwGetTime();
@@ -64,6 +75,18 @@ void app::resize(int ww, int wh) {
 	tmp2tex.bind();
 	tmp2tex.size = glm::ivec2(ww, wh);
 	tmp2tex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
+}
+void app::recv(const packet &p) {
+	switch (p.type()) {
+	case packets::S_C_DISCONNECT:
+		std::cout << "Disconnected!" << std::endl;
+		break;
+	case packets::S_C_MESSAGE:
+		std::cout << "Message received!" << std::endl;
+		break;
+	default:
+		break;
+	}
 }
 
 void app::setSun() {

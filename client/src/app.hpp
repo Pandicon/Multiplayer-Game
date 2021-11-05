@@ -6,18 +6,24 @@
 #include <glm/glm.hpp>
 #include "glw.hpp"
 #include "mesh.hpp"
+#include "networking/client.hpp"
 
 class app {
 public:
 	GLFWwindow *w;
 
 	app(int ww, int wh, const char *title);
+	~app();
+
 	void mainloop();
 	void no_event_mainloop();
 	void resize(int ww, int wh);
+	void recv(const packet &p);
 private:
 	float dt;
 	int ww, wh;
+
+	client cl;
 
 	glw::vao quad;
 	glw::vbo quadvbo;

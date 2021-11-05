@@ -12,7 +12,12 @@ namespace packets {
 		S_C_DISCONNECT,
 		S_C_WALLS,
 		S_C_ROBOTS,
-		// TODO: some more
+		// TODO: add packets
+		S_C_MESSAGE=255,
+	};
+	enum c_s_pckt_t : uint8_t {
+		// TODO: add packets
+		C_S_MESSAGE=255,
 	};
 }
 
@@ -22,6 +27,7 @@ public:
 
 	inline uint8_t     type() const { return dat[0]; }
 	inline const char *data() const { return dat + 1; }
+	inline const char *rawd() const { return dat; }
 	inline size_t      size() const { return len; }
 	inline uint8_t    &type()       { return *reinterpret_cast<uint8_t *>(dat); }
 	inline char       *data()       { return dat + 1; }
