@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+constexpr size_t MAX_PACKET_LEN = 1024;
+
 namespace packets {
 	enum s_c_pckt_t : uint8_t {
 		S_C_DISCONNECT,
@@ -25,7 +27,7 @@ public:
 	inline char       *data()       { return dat + 1; }
 	inline size_t     &size()       { return len; }
 protected:
-	char dat[1024];
+	char dat[MAX_PACKET_LEN];
 	size_t len;
 };
 
