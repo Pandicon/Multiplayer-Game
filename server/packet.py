@@ -20,7 +20,12 @@ class Packet:
 		return self.type.to_bytes(1, "little") + self.data
 	@classmethod
 	def unpack(cls, pckt: bytearray):
-		return cls(pckt[0], pckt[1:])
+		if len(pckt) > 1:
+			return cls(pckt[0], pckt[1:])
+		elif len(pckt) == 1:
+			return cls(pckt[0], b"")
+		else:
+			return cls(0, b"")
 	def extract(self):
 		if self.type == 1:
 			tiles = []
