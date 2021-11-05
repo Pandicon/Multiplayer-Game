@@ -61,8 +61,12 @@ private:
 	glm::vec3 lamppos;
 	bool lamp;
 
+	void setSun();
+	void initRendering();
+	void update();
+	void render();
 	void tick();
-	void render(const glm::mat4 &vp, glw::shader &sh);
+	void renderScene(const glm::mat4 &vp, glw::shader &sh);
 };
 
 #endif

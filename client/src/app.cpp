@@ -11,13 +11,62 @@ constexpr float SUN_DIST = 1000;
 constexpr float SENSITIVITY = 0.01f;
 constexpr int SHADOW_RESOLUTION = 1024;
 
-app::app(int ww, int wh, const char *title) : camorient(1, 0) {
+app::app(int ww, int wh, const char *title) : camorient(1, 0), ww(ww), wh(wh) {
 	w = glfwCreateWindow(ww, wh, title, NULL, NULL);
 	glfwMakeContextCurrent(w);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cout << "OpenGL load failed. Does your graphics card support OpenGL 4.0 core?" << std::endl;
 	}
+	setSun();
+	initRendering();
+	glw::checkError("init check", glw::justPrint);
+	resize(ww, wh);
+}
+void app::mainloop() {
+	double prev = glfwGetTime();
+	while (!glfwWindowShouldClose(w)) {
+		double now = glfwGetTime();
+		dt = static_cast<float>(now - prev);
+		prev = now;
+		tick();
+		glfwSwapBuffers(w);
+		glfwPollEvents();
+		std::this_thread::sleep_for(std::chrono::milliseconds(30));
+	}
+}
+void app::no_event_mainloop() {
+	double prev = glfwGetTime();
+	while (!glfwWindowShouldClose(w)) {
+		double now = glfwGetTime();
+		dt = static_cast<float>(now - prev);
+		prev = now;
+		tick();
+		glfwSwapBuffers(w);
+		std::this_thread::sleep_for(std::chrono::milliseconds(30));
+	}
+}
+void app::resize(int ww, int wh) {
+	this->ww = ww;
+	this->wh = wh;
+	proj = glm::perspective(2.f, static_cast<float>(ww) / wh, .1f, 100.f);
+	posttex.bind();
+	posttex.size = glm::ivec2(ww, wh);
+	posttex.upload(NULL, GL_RGBA, GL_RGBA16F, GL_FLOAT);
+	posttexover.bind();
+	posttexover.size = glm::ivec2(ww, wh);
+	posttexover.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
+	postdepth.bind();
+	postdepth.size = glm::ivec2(ww, wh);
+	postdepth.upload(NULL, GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
+	tmptex.bind();
+	tmptex.size = glm::ivec2(ww, wh);
+	tmptex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
+	tmp2tex.bind();
+	tmp2tex.size = glm::ivec2(ww, wh);
+	tmp2tex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
+}
 
+void app::setSun() {
 	auto now = std::chrono::system_clock::now();
 	time_t tnow = std::chrono::system_clock::to_time_t(now);
     tm *date = std::localtime(&tnow);
@@ -32,7 +81,8 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	lamp = sunpos.y < 0.1f;
 	lamppos = glm::vec3(0.f, 1.0f, 0.1f);
 	sunpos *= SUN_DIST;
-
+}
+void app::initRendering() {
 	float quadverts[] = {
 		-1, -1, 0, 0,
 		 1, -1, 1, 0,
@@ -206,54 +256,8 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	glDrawBuffers(2, attachments);
 	glw::fbo::screen.bind();
-	glw::checkError("init check", glw::justPrint);
-	resize(ww, wh);
 }
-void app::mainloop() {
-	double prev = glfwGetTime();
-	while (!glfwWindowShouldClose(w)) {
-		double now = glfwGetTime();
-		dt = static_cast<float>(now - prev);
-		prev = now;
-		tick();
-		glfwSwapBuffers(w);
-		glfwPollEvents();
-		std::this_thread::sleep_for(std::chrono::milliseconds(30));
-	}
-}
-void app::no_event_mainloop() {
-	double prev = glfwGetTime();
-	while (!glfwWindowShouldClose(w)) {
-		double now = glfwGetTime();
-		dt = static_cast<float>(now - prev);
-		prev = now;
-		tick();
-		glfwSwapBuffers(w);
-		std::this_thread::sleep_for(std::chrono::milliseconds(30));
-	}
-}
-void app::resize(int ww, int wh) {
-	this->ww = ww;
-	this->wh = wh;
-	proj = glm::perspective(2.f, static_cast<float>(ww) / wh, .1f, 100.f);
-	posttex.bind();
-	posttex.size = glm::ivec2(ww, wh);
-	posttex.upload(NULL, GL_RGBA, GL_RGBA16F, GL_FLOAT);
-	posttexover.bind();
-	posttexover.size = glm::ivec2(ww, wh);
-	posttexover.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
-	postdepth.bind();
-	postdepth.size = glm::ivec2(ww, wh);
-	postdepth.upload(NULL, GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
-	tmptex.bind();
-	tmptex.size = glm::ivec2(ww, wh);
-	tmptex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
-	tmp2tex.bind();
-	tmp2tex.size = glm::ivec2(ww, wh);
-	tmp2tex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
-}
-
-void app::tick() {
+void app::update() {
 	double mx, my;
 	glfwGetCursorPos(w, &mx, &my);
 	glm::vec2 mouse(static_cast<float>(mx), static_cast<float>(my));
@@ -265,13 +269,16 @@ void app::tick() {
 		if (camorient.y < -glm::pi<float>()) camorient.y += glm::pi<float>() * 2;
 	}
 	prevm = mouse;
+}
+void app::render() {
+	// calculate camera view
 	float camx = sinf(camorient.y) * cosf(camorient.x);
 	float camy = sinf(camorient.x);
 	float camz = cosf(camorient.y) * cosf(camorient.x);
 	glm::vec3 cam = glm::normalize(glm::vec3(camx, camy, camz)) * CAM_DIST;
 	glm::mat4 viewm = glm::lookAt(cam, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	glm::mat4 vp = proj * viewm;
-
+	// shadow maps
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	sunfbo.bind();
@@ -279,18 +286,17 @@ void app::tick() {
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glm::mat4 sproj = glm::lookAt(sunpos / SUN_DIST * 1.2f, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	sproj = glm::ortho(-1.2f, 1.2f, -1.2f, 1.2f, 0.1f, 2.5f) * sproj;
-	render(sproj, lightsh);
+	renderScene(sproj, lightsh);
 	glm::mat4 lproj = glm::lookAt(lamppos, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	lproj = glm::perspective(2.f, 1.f, 0.1f, 2.5f) * lproj;
 	if (lamp) {
 		lampfbo.bind();
 		glClear(GL_DEPTH_BUFFER_BIT);
-		render(lproj, lightsh);
+		renderScene(lproj, lightsh);
 	}
-
+	// scene
 	postfbo.bind();
 	glViewport(0, 0, ww, wh);
-	
 	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	glDrawBuffers(1, attachments + 1);
 	glClearColor(0, 0, 0, 1.f);
@@ -310,8 +316,8 @@ void app::tick() {
 	sh3d.uniformM4f("lampproj", lproj);
 	sundepth.bind(GL_TEXTURE2);
 	lampdepth.bind(GL_TEXTURE3);
-	render(vp, sh3d);
-	
+	renderScene(vp, sh3d);
+	// blur of bloom
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 	bool horizontal = 1;
@@ -328,15 +334,20 @@ void app::tick() {
 		tmpfbo.swap(tmp2fbo);
 		tmptex.swap(tmp2tex);
 	}
+	// draw posteffects
 	glw::fbo::screen.bind();
 	postsh.use();
 	postsh.uniform1f("exposure", 1.5f);
 	posttex.bind(GL_TEXTURE0);
 	tmp2tex.bind(GL_TEXTURE1);
 	quad.drawElements(6);
+}
+void app::tick() {
+	update();
+	render();
 	glw::checkError("tick end check", glw::justPrint);
 }
-void app::render(const glm::mat4 &vp, glw::shader &sh) {
+void app::renderScene(const glm::mat4 &vp, glw::shader &sh) {
 	sh.use();
 	sh.uniformM4f("proj", vp * glm::mat4(1.f));
 	sh.uniformM4f("model", glm::mat4(1.f));
