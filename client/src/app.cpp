@@ -87,10 +87,10 @@ app::app(int ww, int wh, const char *title) : camorient(1, 0) {
 		wex, wey, wsz, 0, 0, -1, 1, .5f,
 		wex, wsy, wsz, 0, 0, -1, 0, .5f,
 
-		wsx, wsy, wez, 0, 0,  1, 0, 0, // FIXME: this side is not rendered for some reason
-		wex, wey, wez, 0, 0,  1, 1, 0,
-		wex, wey, wez, 0, 0,  1, 1, .5f,
-		wsx, wsy, wez, 0, 0,  1, 0, .5f,
+		wsx, wsy, wez, 0, 0, 1, 0, 0,
+		wex, wsy, wez, 0, 0, 1, 0, .5f,
+		wex, wey, wez, 0, 0, 1, 1, .5f,
+		wsx, wey, wez, 0, 0, 1, 1, 0,
 
 		wsx, wey, wsz, 0,  1, 0, 0, .5f,
 		wsx, wey, wez, 0,  1, 0, 1, .5f,
