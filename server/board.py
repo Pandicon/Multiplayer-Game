@@ -33,7 +33,7 @@ def spinLetters(input: str, spin: int) -> str:
 		output += letters[(letters.index(letter)+spin)%4]
 	return output
 
-def spinCoords(input: list, spin: int) -> list[int]:
+def spinCoords(input: list, spin: int) -> list:
 	max = 7
 	x = input[0] - (max/2)
 	y = input[1] - (max/2)
@@ -55,7 +55,7 @@ def spinTile(input: list, spin: int) -> list:
 	tileInfo[1] = letters
 	return [coords, tileInfo]
 
-def tileWallsStrToBool(walls: str) -> list[bool]:
+def tileWallsStrToBool(walls: str) -> list:
 	output = []
 	letters = ["t", "r", "b", "l"]
 	for i in range(len(letters)):
@@ -65,7 +65,7 @@ def tileWallsStrToBool(walls: str) -> list[bool]:
 			output.append(False)
 	return output
 
-def tileWallsBoolToStr(walls: list[bool]) -> str:
+def tileWallsBoolToStr(walls: list) -> str:
 	output = ""
 	letters = ["t", "r", "b", "l"]
 	for i in range(len(walls)):
