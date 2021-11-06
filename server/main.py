@@ -12,7 +12,15 @@ def main():
 	mainConfig = loadConfigData("../config.json")
 	serverMode = mainConfig["SERVER_MODE"]
 	PORT = mainConfig["PORT"]
-	SERVER_IP = getPublicIP() if serverMode == "public" else getLocalIP()
+	if serverMode == "localhost":
+		SERVER_IP = "127.0.0.1"
+	elif serverMode == "local":
+		SERVER_IP = getLocalIP()
+	elif serverMode == "public":
+		SERVER_IP = getPublicIP()
+	else:
+		print("unknown server mode! (", serverMode, ")")
+		return
 	DISCONNECT_MESSAGE = mainConfig["DISCONNECT_MESSAGE"]
 	SERVER_ADDRESS = (SERVER_IP, PORT)
 
