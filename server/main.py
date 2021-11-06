@@ -10,6 +10,7 @@ def main():
 	global board
 	board = Board()
 	board.generateBoard()
+	board.getWalls() # TEST
 	mainConfig = loadConfigData("../config.json")
 	serverMode = mainConfig["SERVER_MODE"]
 	PORT = mainConfig["PORT"]
