@@ -46,6 +46,8 @@ void client::listen() {
 			if (ec) {
 				if (ec.value() == asio::error::operation_aborted)
 					std::cout << "[Networking]: Stopped listening from server!" << std::endl;
+				else if (ec.value() == asio::error::eof)
+					std::cout << "[Networking]: Connection closed by server!" << std::endl;
 				else
 					std::cout << "[Networking]: " << ec << " " << ec.message() << std::endl;
 			} else {
