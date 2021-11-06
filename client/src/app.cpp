@@ -27,10 +27,11 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 	resize(ww, wh);
 
 	cl.connect("127.0.0.1", "5050");
-	char data[] = "\xFFHello from C++!";
-	cl.send(packet(data, 17));
+	char data[] = "Hello from C++!";
+	cl.send(packet(packets::C_S_MESSAGE, data, 16));
 }
 app::~app() {
+	cl.send(packet(packets::C_S_DISCONNECT, nullptr, 0));
 	cl.disconnect();
 }
 void app::mainloop() {
@@ -82,7 +83,7 @@ void app::recv(const packet &p) {
 		std::cout << "Disconnected!" << std::endl;
 		break;
 	case packets::S_C_MESSAGE:
-		std::cout << "Message received!" << std::endl;
+		std::cout << "[Chat]: " << std::string(p.data(), p.size()) << std::endl;
 		break;
 	default:
 		break;

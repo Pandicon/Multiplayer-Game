@@ -16,6 +16,7 @@ namespace packets {
 		S_C_MESSAGE=255,
 	};
 	enum c_s_pckt_t : uint8_t {
+		C_S_DISCONNECT,
 		// TODO: add packets
 		C_S_MESSAGE=255,
 	};
@@ -24,6 +25,7 @@ namespace packets {
 class packet {
 public:
 	inline packet(const char *d, size_t l) : len(l - 1) { memcpy(dat, d, l); }
+	inline packet(uint8_t t, const char *d, size_t l) : len(l) { dat[0] = t; memcpy(dat+1, d, l); }
 
 	inline uint8_t     type() const { return dat[0]; }
 	inline const char *data() const { return dat + 1; }
