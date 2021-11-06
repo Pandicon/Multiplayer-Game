@@ -137,7 +137,8 @@ void app::setSun() {
 	auto time = std::chrono::duration_cast<std::chrono::seconds>(now - midnight).count();
 	float dayprogress = static_cast<float>(time) / 86400.f;
 	sunpos = glm::vec3(sinf(dayprogress*2.f*glm::pi<float>()), -cosf(dayprogress*2.f*glm::pi<float>()), 0.1f);
-	skycol = glm::vec3(.2f, .7f, 1.f) * (sunpos.y < 0 ? 0 : sunpos.y);
+	sunstrength = sunpos.y < 0 ? 0 : sunpos.y;
+	skycol = glm::vec3(.2f, .7f, 1.f) * sunstrength;
 	lamp = sunpos.y < 0.1f;
 	lamppos = glm::vec3(0.f, 1.0f, 0.001f);
 	sunpos *= SUN_DIST;
@@ -158,6 +159,7 @@ void app::initRendering() {
 	boardmesh.load("./models/board.obj");
 	wall.load("./models/wall.obj");
 	robot.load("./models/robot.obj");
+	sun.load("./models/sun.obj");
 
 	glw::compileShaderFromFile(postsh, "./shaders/post", glw::default_shader_error_handler());
 	postsh.use();
@@ -279,6 +281,9 @@ void app::render() {
 	glm::vec3 cam = glm::normalize(glm::vec3(camx, camy, camz)) * CAM_DIST;
 	glm::mat4 viewm = glm::lookAt(cam, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	glm::mat4 vp = proj * viewm;
+	glm::mat4 vr(1.f);
+	vr = glm::rotate(vr, camorient.x, glm::vec3(1, 0, 0));
+	vr = glm::rotate(vr, -camorient.y, glm::vec3(0, 1, 0));
 	// target model matrix
 	glm::mat4 trgmodel = glm::translate(glm::mat4(1.f),
 		glm::vec3(
@@ -322,8 +327,19 @@ void app::render() {
 	glClearColor(skycol.x, skycol.y, skycol.z, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDrawBuffers(2, attachments);
+	glDisable(GL_DEPTH_TEST);
+	trgsh.use();
+	glm::mat4 sunmodel(1.f);
+	glm::vec3 rendsunpos = sunpos / SUN_DIST * 25.f;
+	sunmodel = glm::translate(sunmodel, rendsunpos);
+	trgsh.uniformM4f("proj", proj * vr * sunmodel);
+	trgsh.uniformM4f("model", sunmodel);
+	trgsh.uniform3f("col", sunstrength * 20, sunstrength * 20, sunstrength * 20);
+	sun.vao.bind();
+	sun.draw();
+	glEnable(GL_DEPTH_TEST);
 	sh3d.use();
-	sh3d.uniform3f("suncol", 1, 1, 1);
+	sh3d.uniform3f("suncol", sunstrength, sunstrength, sunstrength);
 	sh3d.uniform3f("lampcol", 1, 1, .6f);
 	sh3d.uniform3f("sunpos", sunpos);
 	sh3d.uniform3f("lamppos", lamppos);
@@ -359,7 +375,7 @@ void app::render() {
 	// draw posteffects
 	glw::fbo::screen.bind();
 	postsh.use();
-	postsh.uniform1f("exposure", 1.5f);
+	postsh.uniform1f("exposure", 1.f);
 	posttex.bind(GL_TEXTURE0);
 	tmp2tex.bind(GL_TEXTURE1);
 	quad.drawElements(6);

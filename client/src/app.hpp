@@ -34,6 +34,7 @@ private:
 	mesh boardmesh;
 	mesh wall;
 	mesh robot;
+	mesh sun;
 	
 	glw::shader postsh;
 	glw::shader sh3d;
@@ -66,6 +67,7 @@ private:
 	glm::vec3 skycol;
 	glm::vec3 lamppos;
 	bool lamp;
+	float sunstrength;
 
 	board brd;
 	bot bots[5];
