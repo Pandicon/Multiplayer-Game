@@ -27,6 +27,8 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 		for (uint8_t j = 0; j < 4; ++j)
 			tile[j] = false;
 	}
+	for (uint8_t i = 0; i < 5; ++i)
+		bots[i].color = static_cast<colors::color_t>(i);
 	setSun();
 	initRendering();
 	glw::checkError("init check", glw::justPrint);
@@ -106,6 +108,9 @@ void app::recv(const packet &p) {
 		}
 		break;
 	}
+	case packets::S_C_ROBOTS:
+		// TODO:
+		break;
 	case packets::S_C_MESSAGE:
 		std::cout << "[Chat]: " << std::string(p.data(), p.size()) << std::endl;
 		break;
@@ -423,45 +428,18 @@ void app::renderScene(const glm::mat4 &vp, glw::shader &sh) {
 			}
 		}
 	}
-	glm::mat4 model =
-		glm::translate(glm::mat4(1.f), glm::vec3(0 * 0.125f - 0.9375f, 0.001f, 0 * 0.125f - 0.9375f));
-	sh.uniformM4f("proj", vp * model);
-	sh.uniformM4f("model", model);
-	sh.uniform3f("col", 1, 1, 0);
-	whitetex.bind(GL_TEXTURE0);
-	blacktex.bind(GL_TEXTURE1);
-	robot.vao.bind();
-	robot.draw();
-	model = glm::translate(glm::mat4(1.f), glm::vec3(1 * 0.125f - 0.9375f, 0.001f, 0 * 0.125f - 0.9375f));
-	sh.uniformM4f("proj", vp * model);
-	sh.uniformM4f("model", model);
-	sh.uniform3f("col", 1, 0, 0);
-	whitetex.bind(GL_TEXTURE0);
-	blacktex.bind(GL_TEXTURE1);
-	robot.vao.bind();
-	robot.draw();
-	model = glm::translate(glm::mat4(1.f), glm::vec3(2 * 0.125f - 0.9375f, 0.001f, 0 * 0.125f - 0.9375f));
-	sh.uniformM4f("proj", vp * model);
-	sh.uniformM4f("model", model);
-	sh.uniform3f("col", 0, 0.7f, 0);
-	whitetex.bind(GL_TEXTURE0);
-	blacktex.bind(GL_TEXTURE1);
-	robot.vao.bind();
-	robot.draw();
-	model = glm::translate(glm::mat4(1.f), glm::vec3(0 * 0.125f - 0.9375f, 0.001f, 3 * 0.125f - 0.9375f));
-	sh.uniformM4f("proj", vp * model);
-	sh.uniformM4f("model", model);
-	sh.uniform3f("col", 0, 0, 1);
-	whitetex.bind(GL_TEXTURE0);
-	blacktex.bind(GL_TEXTURE1);
-	robot.vao.bind();
-	robot.draw();
-	model = glm::translate(glm::mat4(1.f), glm::vec3(0 * 0.125f - 0.9375f, 0.001f, 4 * 0.125f - 0.9375f));
-	sh.uniformM4f("proj", vp * model);
-	sh.uniformM4f("model", model);
-	sh.uniform3f("col", .2f, .2f, .2f);
-	whitetex.bind(GL_TEXTURE0);
-	blacktex.bind(GL_TEXTURE1);
-	robot.vao.bind();
-	robot.draw();
+	for (size_t i = 0; i < 5; ++i) {
+		glm::mat4 model = glm::translate(glm::mat4(1.f),
+			glm::vec3(
+				bots[i].pos.x * 0.125f - 0.9375f,
+				0.001f,
+				bots[i].pos.y * 0.125f - 0.9375f));
+		sh.uniformM4f("proj", vp * model);
+		sh.uniformM4f("model", model);
+		sh.uniform3f("col", colors::toRGB[bots[i].color]);
+		whitetex.bind(GL_TEXTURE0);
+		blacktex.bind(GL_TEXTURE1);
+		robot.vao.bind();
+		robot.draw();
+	}
 }

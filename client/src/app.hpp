@@ -1,10 +1,12 @@
 #ifndef __APP_HPP__
 #define __APP_HPP__
 
+#include <vector>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include "board.hpp"
+#include "bot.hpp"
 #include "glw.hpp"
 #include "mesh.hpp"
 #include "networking/client.hpp"
@@ -69,6 +71,7 @@ private:
 	bool lamp;
 
 	board brd;
+	bot bots[5];
 	
 	void setSun();
 	void initRendering();
