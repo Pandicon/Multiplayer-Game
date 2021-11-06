@@ -12,6 +12,7 @@ namespace packets {
 		S_C_DISCONNECT,
 		S_C_WALLS,
 		S_C_ROBOTS,
+		S_C_TARGET,
 		// TODO: add packets
 		S_C_MESSAGE=255,
 	};

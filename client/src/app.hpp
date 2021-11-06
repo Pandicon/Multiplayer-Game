@@ -43,6 +43,7 @@ private:
 	glw::shader sh3d;
 	glw::shader lightsh;
 	glw::shader blursh;
+	glw::shader trgsh;
 
 	glw::tex2_array<2> boardtex;
 	glw::tex2_array<2> walltex;
@@ -72,6 +73,7 @@ private:
 
 	board brd;
 	bot bots[5];
+	target trg;
 	
 	void setSun();
 	void initRendering();
@@ -79,6 +81,7 @@ private:
 	void render();
 	void tick();
 	void renderScene(const glm::mat4 &vp, glw::shader &sh);
+	void renderTarget();
 };
 
 #endif

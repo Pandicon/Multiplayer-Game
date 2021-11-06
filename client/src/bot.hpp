@@ -28,4 +28,10 @@ public:
 	glm::ivec2 startpos;
 };
 
+class target {
+public:
+	colors::color_t color;
+	glm::ivec2 pos;
+};
+
 #endif

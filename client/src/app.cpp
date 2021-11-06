@@ -27,8 +27,12 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 		for (uint8_t j = 0; j < 4; ++j)
 			tile[j] = false;
 	}
-	for (uint8_t i = 0; i < 5; ++i)
+	for (uint8_t i = 0; i < 5; ++i) {
 		bots[i].color = static_cast<colors::color_t>(i);
+		bots[i].pos = glm::ivec2(i, 0);
+	}
+	trg.color = colors::GREEN;
+	trg.pos = glm::ivec2(2, 2);
 	setSun();
 	initRendering();
 	glw::checkError("init check", glw::justPrint);
@@ -109,6 +113,9 @@ void app::recv(const packet &p) {
 		break;
 	}
 	case packets::S_C_ROBOTS:
+		// TODO:
+		break;
+	case packets::S_C_TARGET:
 		// TODO:
 		break;
 	case packets::S_C_MESSAGE:
@@ -226,6 +233,7 @@ void app::initRendering() {
 	glw::compileShaderFromFile(blursh, "./shaders/pass.vert", "./shaders/blur.frag", glw::default_shader_error_handler());
 	blursh.use();
 	blursh.uniform1i("tex", 0);
+	glw::compileShaderFromFile(trgsh, "./shaders/trg", glw::default_shader_error_handler());
 
 	boardtex.gen();
 	boardtex[0].bind();
@@ -331,6 +339,12 @@ void app::render() {
 	glm::vec3 cam = glm::normalize(glm::vec3(camx, camy, camz)) * CAM_DIST;
 	glm::mat4 viewm = glm::lookAt(cam, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	glm::mat4 vp = proj * viewm;
+	// target model matrix
+	glm::mat4 trgmodel = glm::translate(glm::mat4(1.f),
+		glm::vec3(
+			trg.pos.x * 0.125f - 0.9375f,
+			0.003f,
+			trg.pos.y * 0.125f - 0.9375f));
 	// shadow maps
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -340,12 +354,20 @@ void app::render() {
 	glm::mat4 sproj = glm::lookAt(sunpos / SUN_DIST * 1.2f, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	sproj = glm::ortho(-1.5f, 1.5f, -1.5f, 1.5f, 0.1f, 2.5f) * sproj;
 	renderScene(sproj, lightsh);
+	lightsh.use();
+	lightsh.uniformM4f("proj", sproj * trgmodel);
+	lightsh.uniformM4f("model", trgmodel);
+	renderTarget();
 	glm::mat4 lproj = glm::lookAt(lamppos, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	lproj = glm::perspective(2.f, 1.f, 0.1f, 2.5f) * lproj;
 	if (lamp) {
 		lampfbo.bind();
 		glClear(GL_DEPTH_BUFFER_BIT);
 		renderScene(lproj, lightsh);
+		lightsh.use();
+		lightsh.uniformM4f("proj", lproj * trgmodel);
+		lightsh.uniformM4f("model", trgmodel);
+		renderTarget();
 	}
 	// scene
 	postfbo.bind();
@@ -370,6 +392,11 @@ void app::render() {
 	sundepth.bind(GL_TEXTURE2);
 	lampdepth.bind(GL_TEXTURE3);
 	renderScene(vp, sh3d);
+	trgsh.use();
+	trgsh.uniformM4f("proj", vp * trgmodel);
+	trgsh.uniformM4f("model", trgmodel);
+	trgsh.uniform3f("col", colors::toRGB[trg.color]);
+	renderTarget();
 	// blur of bloom
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
@@ -442,4 +469,10 @@ void app::renderScene(const glm::mat4 &vp, glw::shader &sh) {
 		robot.vao.bind();
 		robot.draw();
 	}
+}
+void app::renderTarget() {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	robot.vao.bind();
+	robot.draw();
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
