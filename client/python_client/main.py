@@ -14,9 +14,9 @@ def main():
     responseType, response = client.receive(1024)
     print(f"[SERVER] {response}")
 
-    client.send(DISCONNECT_MESSAGE)
-    responseType, response = client.receive(1024)
-    print(f"[SERVER] {response}")
+    client.send("", 0) # disconnect
+    #responseType, response = client.receive(1024)
+    #print(f"[SERVER] {response}")
 
 if __name__ == "__main__":
     main()

@@ -36,10 +36,10 @@ def handleClient(connection: socket.socket, address, disconnect_message):
 	connected = True
 	while connected:
 		messageType, message = receive(connection, 1024)
-		if message == disconnect_message:
+		if messageType == 0:
 			print(f"[DISCONNECT] Message to disconnect received, disconnecting {address}")
 			connected = False
-			send(connection, "Disconnecting due to such request", 255)
+			#send(connection, "Disconnecting due to such request", 255)
 			break
 
 		print(f"[{address}] {message}")
