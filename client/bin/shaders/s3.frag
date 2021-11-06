@@ -20,7 +20,7 @@ uniform sampler2D sundepth;
 uniform sampler2D lampdepth;
 
 const float specfactor = 0.5;
-const float bias = 0.005;
+const float bias = -0.0001;
 
 float getShadow(vec3 flpos, sampler2D smap) {
 	flpos = flpos * 0.5 + 0.5;
@@ -53,7 +53,7 @@ void main() {
 	}
 	outcol = vec4(col * (diff + spec), 1);
 	float brightness = dot(outcol.rgb, vec3(0.2126, 0.7152, 0.0722));
-    if(brightness > 1.2)
+    if(brightness > 1)
         outcolover = vec4(outcol.rgb, 1.0);
     else
         outcolover = vec4(0.0, 0.0, 0.0, 1.0);

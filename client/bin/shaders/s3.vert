@@ -16,7 +16,7 @@ uniform mat4 lampproj;
 void main() {
 	gl_Position = proj * vec4(pos, 1);
 	fpos = (model * vec4(pos, 1)).xyz;
-	norm = normal;//mat3(transpose(inverse(model))) * normal;
+	norm = mat3(model) * normal;//mat3(transpose(inverse(model))) * normal;
 	tpos = texpos;
 	sunrpos = sunproj * model * vec4(pos, 1);
 	lamprpos = lampproj * model * vec4(pos, 1);

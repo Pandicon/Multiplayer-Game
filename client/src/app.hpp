@@ -31,12 +31,8 @@ private:
 	glw::vao quad;
 	glw::vbo quadvbo;
 	glw::ebo quadebo;
-	glw::vao boardvao;
-	glw::vbo boardvbo;
-	glw::ebo boardebo;
-	glw::vao wall;
-	glw::vbo wallvbo;
-	glw::ebo wallebo;
+	mesh boardmesh;
+	mesh wall;
 	mesh robot;
 	
 	glw::shader postsh;

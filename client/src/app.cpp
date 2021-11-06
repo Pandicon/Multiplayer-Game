@@ -10,7 +10,7 @@
 constexpr float CAM_DIST = 1.6f;
 constexpr float SUN_DIST = 1000;
 constexpr float SENSITIVITY = 0.01f;
-constexpr int SHADOW_RESOLUTION = 1024;
+constexpr int SHADOW_RESOLUTION = 2048;
 
 void onRecv(packet &p, void *data) {
 	((app *)data)->recv(p);
@@ -139,7 +139,7 @@ void app::setSun() {
 	sunpos = glm::vec3(sinf(dayprogress*2.f*glm::pi<float>()), -cosf(dayprogress*2.f*glm::pi<float>()), 0.1f);
 	skycol = glm::vec3(.2f, .7f, 1.f) * (sunpos.y < 0 ? 0 : sunpos.y);
 	lamp = sunpos.y < 0.1f;
-	lamppos = glm::vec3(0.f, 1.0f, 0.1f);
+	lamppos = glm::vec3(0.f, 1.0f, 0.001f);
 	sunpos *= SUN_DIST;
 }
 void app::initRendering() {
@@ -155,68 +155,8 @@ void app::initRendering() {
 	};
 	glw::initVaoVboEbo(quad, quadvbo, quadebo, quadverts, sizeof(quadverts),
 		quadindices, sizeof(quadindices), sizeof(float)*4, {glw::vap(2),glw::vap(2, sizeof(float)*2)});
-	float boardverts[] = {
-	//  position   normal   texture-pos
-		-1, 0, -1, 0,  1, 0, 0, 0,
-		-1, 0,  1, 0,  1, 0, 0, 1,
-		 1, 0,  1, 0,  1, 0, 1, 1,
-		 1, 0, -1, 0,  1, 0, 1, 0,
-
-		-1, 0, -1, 0, -1, 0, 0, 0,
-		 1, 0, -1, 0, -1, 0, 1, 0,
-		 1, 0,  1, 0, -1, 0, 1, 1,
-		-1, 0,  1, 0, -1, 0, 0, 1,
-	};
-	unsigned int boardindices[] = {
-		0, 1, 2, 0, 2, 3,
-		4, 5, 6, 4, 6, 7
-	};
-	glw::initVaoVboEbo(boardvao, boardvbo, boardebo, boardverts, sizeof(boardverts),
-		boardindices, sizeof(boardindices), sizeof(float)*8,
-		{glw::vap(3), glw::vap(3, sizeof(float)*3), glw::vap(2, sizeof(float)*6)});
-	const float wsx = -.0625;
-	const float wex = -.046875f;
-	const float wsy =  .0f;
-	const float wey =  .03f;
-	const float wsz = -.06249;
-	const float wez =  .06249f;
-	float wallverts[] = {
-	//  position       normal    texture-pos
-		wsx, wsy, wsz, -1, 0, 0, 0, .5f,
-		wsx, wsy, wez, -1, 0, 0, 1, .5f,
-		wsx, wey, wez, -1, 0, 0, 1, 0,
-		wsx, wey, wsz, -1, 0, 0, 0, 0,
-
-		wex, wsy, wsz,  1, 0, 0, 0, .5f,
-		wex, wey, wsz,  1, 0, 0, 0, 0,
-		wex, wey, wez,  1, 0, 0, 1, 0,
-		wex, wsy, wez,  1, 0, 0, 1, .5f,
-
-		wsx, wsy, wsz, 0, 0, -1, 0, 0,
-		wsx, wey, wsz, 0, 0, -1, 1, 0,
-		wex, wey, wsz, 0, 0, -1, 1, .5f,
-		wex, wsy, wsz, 0, 0, -1, 0, .5f,
-
-		wsx, wsy, wez, 0, 0, 1, 0, 0,
-		wex, wsy, wez, 0, 0, 1, 0, .5f,
-		wex, wey, wez, 0, 0, 1, 1, .5f,
-		wsx, wey, wez, 0, 0, 1, 1, 0,
-
-		wsx, wey, wsz, 0,  1, 0, 0, .5f,
-		wsx, wey, wez, 0,  1, 0, 1, .5f,
-		wex, wey, wez, 0,  1, 0, 1, 1,
-		wex, wey, wsz, 0,  1, 0, 0, 1,
-	};
-	unsigned int wallindices[] = {
-		0,  1,  2,  0,  2,  3,
-		4,  5,  6,  4,  6,  7,
-		8,  9,  10, 8,  10, 11,
-		12, 13, 14, 12, 14, 15,
-		16, 17, 18, 16, 18, 19
-	};
-	glw::initVaoVboEbo(wall, wallvbo, wallebo, wallverts, sizeof(wallverts),
-		wallindices, sizeof(wallindices), sizeof(float)*8,
-		{glw::vap(3), glw::vap(3, sizeof(float)*3), glw::vap(2, sizeof(float)*6)});
+	boardmesh.load("./models/board.obj");
+	wall.load("./models/wall.obj");
 	robot.load("./models/robot.obj");
 
 	glw::compileShaderFromFile(postsh, "./shaders/post", glw::default_shader_error_handler());
@@ -343,11 +283,12 @@ void app::render() {
 	glm::mat4 trgmodel = glm::translate(glm::mat4(1.f),
 		glm::vec3(
 			trg.pos.x * 0.125f - 0.9375f,
-			0.003f,
+			0.005f,
 			trg.pos.y * 0.125f - 0.9375f));
 	// shadow maps
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
 	sunfbo.bind();
 	glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -369,6 +310,7 @@ void app::render() {
 		lightsh.uniformM4f("model", trgmodel);
 		renderTarget();
 	}
+	glCullFace(GL_BACK);
 	// scene
 	postfbo.bind();
 	glViewport(0, 0, ww, wh);
@@ -434,8 +376,8 @@ void app::renderScene(const glm::mat4 &vp, glw::shader &sh) {
 	sh.uniform3f("col", 1, 1, 1);
 	boardtex[0].bind(GL_TEXTURE0);
 	boardtex[1].bind(GL_TEXTURE1);
-	boardvao.bind();
-	boardvao.drawElements(12);
+	boardmesh.vao.bind();
+	boardmesh.draw();
 
 	for (size_t x = 0; x < 16; ++x) {
 		for (size_t y = 0; y < 16; ++y) {
@@ -449,8 +391,8 @@ void app::renderScene(const glm::mat4 &vp, glw::shader &sh) {
 					sh.uniform3f("col", 1, 1, 1);
 					walltex[0].bind(GL_TEXTURE0);
 					walltex[1].bind(GL_TEXTURE1);
-					wall.bind();
-					wall.drawElements(30);
+					wall.vao.bind();
+					wall.draw();
 				}
 			}
 		}
