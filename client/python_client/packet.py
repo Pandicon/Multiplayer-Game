@@ -37,7 +37,7 @@ class Packet:
 	def __repr__(self) -> str:
 		return f"Packet({repr(self.type)}, {repr(self.data)})"
 
-def tileIntToBools(tileValue: int) -> list[bool]:
+def tileIntToBools(tileValue: int) -> list:
 	bools = []
 	divisors = [8, 4, 2, 1]
 	for divisor in divisors:
