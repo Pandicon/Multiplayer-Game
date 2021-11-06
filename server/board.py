@@ -1,3 +1,4 @@
+import math
 import random
 from configHandler import loadConfigData
 
@@ -13,8 +14,6 @@ class Board():
 		generatedBoard = [[], [], [], []]
 		for i in range(len(shuffledGameboardParts)):
 			quarter = shuffledGameboardParts[i]
-			if quarter == 0:
-				continue
 			for n in range(len(quarter)):
 				quarter[n] = spinTile(quarter[n], i)
 				if wallsToBool:
@@ -25,6 +24,17 @@ class Board():
 
 	def getBoard(self):
 		return self.boardLayout
+	
+	def getWalls(self) -> list:
+		# 2D array (16x16) of empty tiles
+		w = [[[False, False, False, False] for _ in range(16)] for _ in range(16)]
+		for i, q in enumerate(self.boardLayout):
+			for t in q:
+				d = math.floor(abs(i - 1.5))
+				x = t[0][0]+((1-d)*8)
+				y = t[0][1]+(i//2*8)
+				w[x][y] = t[1][1]
+		return w
 
 def spinLetters(input: str, spin: int) -> str:
 	output = ""
@@ -35,16 +45,13 @@ def spinLetters(input: str, spin: int) -> str:
 
 def spinCoords(input: list, spin: int) -> list:
 	max = 7
-	x = input[0] - (max/2)
-	y = input[1] - (max/2)
-	tempX = x
+	x = input[0]
+	y = input[1]
 	for i in range(spin%4):
-		x = y
-		y = -tempX
 		tempX = x
-	x += 3.5
-	y += 3.5
-	return [int(x), int(y)]
+		x = max-y
+		y = tempX
+	return [x, y]
 
 def spinTile(input: list, spin: int) -> list:
 	coords = input[0]
