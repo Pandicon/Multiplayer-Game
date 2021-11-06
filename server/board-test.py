@@ -1,8 +1,14 @@
 from board import *
+import packet
 
 def tst(what, res):
 	if eval(what) != res:
 		print("!: ", what, " != ", res, " (", eval(what), ")")
+def printwalls(w):
+	for row in w:
+		for til in row:
+			print('.^]?_=J#[P"#L###'[int("".join([str(int(x)) for x in til]), 2)],end="")
+		print()
 
 tst("spinLetters('tr', 1)", "rb")
 tst("spinLetters('tr', 2)", "bl")
@@ -22,3 +28,11 @@ tst("spinCoords([1, 3], 1)", [4, 1])
 tst("spinCoords([1, 3], 2)", [6, 4])
 tst("spinCoords([1, 3], 3)", [3, 6])
 
+print("-----------")
+b = Board()
+b.generateBoard()
+printwalls(b.getWalls())
+print("-----------")
+p = packet.Packet(1, b.getWalls())
+p2 = packet.Packet.unpack(p.pack())
+printwalls(p2.extract())
