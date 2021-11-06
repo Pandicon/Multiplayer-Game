@@ -1,3 +1,4 @@
+import math
 import random
 from configHandler import loadConfigData
 
@@ -25,6 +26,14 @@ class Board():
 
 	def getBoard(self):
 		return self.boardLayout
+	
+	def getWalls(self) -> list:
+		# 2D array (16x16) of empty tiles
+		w = [[[False, False, False, False] for _ in range(16)] for _ in range(16)]
+		for i, q in enumerate(self.boardLayout):
+			for t in q:
+				w[t[0][0]+(i//2*8)][t[0][1]+(i%2*8)] = t[1][1]
+		return w
 
 def spinLetters(input: str, spin: int) -> str:
 	output = ""

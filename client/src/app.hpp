@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include "board.hpp"
 #include "glw.hpp"
 #include "mesh.hpp"
 #include "networking/client.hpp"
@@ -28,7 +29,7 @@ private:
 	glw::vao quad;
 	glw::vbo quadvbo;
 	glw::ebo quadebo;
-	glw::vao board;
+	glw::vao boardvao;
 	glw::vbo boardvbo;
 	glw::ebo boardebo;
 	glw::vao wall;
@@ -67,6 +68,8 @@ private:
 	glm::vec3 lamppos;
 	bool lamp;
 
+	board brd;
+	
 	void setSun();
 	void initRendering();
 	void update();

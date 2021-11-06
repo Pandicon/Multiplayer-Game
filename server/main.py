@@ -7,6 +7,7 @@ from configHandler import loadConfigData
 from utils import getPublicIP, getLocalIP
 
 def main():
+	global board
 	board = Board()
 	board.generateBoard()
 	mainConfig = loadConfigData("../config.json")
@@ -40,6 +41,8 @@ def main():
 
 def handleClient(connection: socket.socket, address, disconnect_message):
 	print(f"[NEW CONNECTION] {address} connected.")
+	
+	send(connection, board.getWalls(), 1) # walls
 
 	connected = True
 	while connected:
@@ -55,7 +58,7 @@ def handleClient(connection: socket.socket, address, disconnect_message):
 
 	connection.close()
 
-def send(connection: socket.socket, message: str, messageType: int):
+def send(connection: socket.socket, message, messageType: int):
 	packet = Packet(messageType, message)
 	connection.send(packet.pack())
 
