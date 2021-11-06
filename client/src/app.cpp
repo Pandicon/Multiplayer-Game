@@ -1,6 +1,7 @@
 #include "app.hpp"
 
 #include <math.h>
+#include <bitset>
 #include <chrono>
 #include <iostream>
 #include <thread>
@@ -85,16 +86,26 @@ void app::recv(const packet &p) {
 	case packets::S_C_DISCONNECT:
 		std::cout << "Disconnected!" << std::endl;
 		break;
-	case packets::S_C_WALLS:
-		for (size_t i = 0; i < BOARD_TILES; ++i) {
-			uint8_t dat = p.data()[i/2];
-			if (i % 2 == 0)
-				dat >>= 4;
-			bool *tile = brd.walls[i % BOARD_SIZE][i / BOARD_SIZE];
-			for (uint8_t j = 0; j < 4; ++j)
-				tile[j] = dat >> j & 1;
+	case packets::S_C_WALLS:{
+		size_t x = 0, y = 0;
+		for (size_t i = 0; i < p.size(); ++i) {
+			char dat1(p.data()[i] >> 4 & 0xf);
+			char dat2(p.data()[i] & 0xf);
+			uint8_t lookup[] = { 1, 0, 3, 2 };
+			for (uint8_t j = 0; j < 4; ++j) {
+				brd.walls[x][y][lookup[j]] = dat1 & 1;
+				brd.walls[x+1][y][lookup[j]] = dat2 & 1;
+				dat1 >>= 1;
+				dat2 >>= 1;
+			}
+			x += 2;
+			if (i % 8 == 7) {
+				++y;
+				x = 0;
+			}
 		}
 		break;
+	}
 	case packets::S_C_MESSAGE:
 		std::cout << "[Chat]: " << std::string(p.data(), p.size()) << std::endl;
 		break;
@@ -398,8 +409,9 @@ void app::renderScene(const glm::mat4 &vp, glw::shader &sh) {
 		for (size_t y = 0; y < 16; ++y) {
 			for (size_t side = 0; side < 4; ++side) {
 				if (brd.walls[x][y][side]) {
-					glm::mat4 model = glm::rotate(glm::mat4(1.f), glm::pi<float>() * .5f * side, glm::vec3(0, 1, 0));
+					glm::mat4 model = glm::mat4(1.f);
 					model = glm::translate(model, glm::vec3(x * 0.125f - 0.9375f, 0, y * 0.125f - 0.9375f));
+					model = glm::rotate(model, glm::pi<float>() * .5f * (side + 2), glm::vec3(0, 1, 0));
 					sh.uniformM4f("proj", vp * model);
 					sh.uniformM4f("model", model);
 					sh.uniform3f("col", 1, 1, 1);
