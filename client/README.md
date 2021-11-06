@@ -8,7 +8,8 @@ glfw3 | https://www.glfw.org/download.html | (window)
 glad | https://glad.dav1d.de/#language=c&specification=gl&api=gl%3D4.0&api=gles1%3Dnone&api=gles2%3Dnone&api=glsc2%3Dnone&profile=core&loader=on | (OpenGL loader)
 stb | https://github.com/nothings/stb | only stb_image.h (texture loading)
 glm | https://github.com/g-truc/glm | (math)
-asio | https://think-async.com/Asio/Download.html | (networking, not used yet)
+asio | https://think-async.com/Asio/Download.html | (networking)
+nlphmann's json | https://github.com/nlohmann/json | (json parser, not used yet)
 
 If you want to compile client yourself, put header files inside include folder,
 source files (glad.c) directly into libs folder and libraries (glfw) into
@@ -36,6 +37,8 @@ include
 |  + <asio headers>
 |
 +--+ asio.hpp
+|
++--+ json.hpp
 ```
 # Compilation
 Compiling should be pretty easy once you setup libraries. Just use CMake, for example this way:
