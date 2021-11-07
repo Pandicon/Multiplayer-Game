@@ -14,6 +14,7 @@ uniform vec3 lamppos;
 uniform bool lampon;
 uniform vec3 col;
 uniform vec3 campos;
+uniform bool shadows;
 uniform sampler2D tex;
 uniform sampler2D texspec;
 uniform sampler2D sundepth;
@@ -34,7 +35,7 @@ vec2 calcLight(vec3 lpos, float ambient, vec4 flpos, sampler2D smap) {
 	vec3 halfdir = normalize(lightdir + viewDir);
 	float diff = max(dot(norm, lightdir), 0.0);
 	float spec = pow(max(dot(norm, halfdir), 0.0), 8.0);
-	float light = getShadow(flpos.xyz / flpos.w, smap);
+	float light = shadows ? getShadow(flpos.xyz / flpos.w, smap) : 1;
 	return vec2(ambient + diff * light, spec * specfactor * light);
 }
 

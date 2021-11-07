@@ -1,0 +1,27 @@
+{
+	"ultralow":{
+		"shadows":false,
+		"shadowResolution":1,
+		"bloomBlurPasses":0
+	},
+	"low":{
+		"shadows":true,
+		"shadowResolution":512,
+		"bloomBlurPasses":1
+	},
+	"normal":{
+		"shadows":true,
+		"shadowResolution":1024,
+		"bloomBlurPasses":2
+	},
+	"high":{
+		"shadows":true,
+		"shadowResolution":2048,
+		"bloomBlurPasses":4
+	},
+	"ultrahigh":{
+		"shadows":true,
+		"shadowResolution":4096,
+		"bloomBlurPasses":8
+	}
+}

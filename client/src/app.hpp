@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include "board.hpp"
 #include "bot.hpp"
+#include "config.hpp"
 #include "glw.hpp"
 #include "mesh.hpp"
 #include "networking/client.hpp"
@@ -25,6 +26,8 @@ public:
 private:
 	float dt;
 	int ww, wh;
+
+	config cfg;
 
 	client cl;
 

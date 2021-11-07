@@ -6,11 +6,10 @@
 #include <iostream>
 #include <thread>
 #include <glm/gtc/matrix_transform.hpp>
+#include "config.hpp"
 
 constexpr float CAM_DIST = 1.6f;
 constexpr float SUN_DIST = 1000;
-constexpr float SENSITIVITY = 0.01f;
-constexpr int SHADOW_RESOLUTION = 2048;
 
 void onRecv(packet &p, void *data) {
 	((app *)data)->recv(p);
@@ -22,6 +21,7 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cout << "OpenGL load failed. Does your graphics card support OpenGL 4.0 core?" << std::endl;
 	}
+	cfg.load();
 	for (size_t i = 0; i < BOARD_TILES; ++i) {
 		bool *tile = brd.walls[i % BOARD_SIZE][i / BOARD_SIZE];
 		for (uint8_t j = 0; j < 4; ++j)
@@ -53,7 +53,7 @@ void app::mainloop() {
 		tick();
 		glfwSwapBuffers(w);
 		glfwPollEvents();
-		std::this_thread::sleep_for(std::chrono::milliseconds(30));
+		std::this_thread::sleep_for(std::chrono::milliseconds(cfg.sleepms));
 	}
 }
 void app::no_event_mainloop() {
@@ -64,7 +64,7 @@ void app::no_event_mainloop() {
 		prev = now;
 		tick();
 		glfwSwapBuffers(w);
-		std::this_thread::sleep_for(std::chrono::milliseconds(30));
+		std::this_thread::sleep_for(std::chrono::milliseconds(cfg.sleepms));
 	}
 }
 void app::resize(int ww, int wh) {
@@ -204,7 +204,7 @@ void app::initRendering() {
 	sundepth.gen();
 	sundepth.bind();
 	sundepth.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	sundepth.size = glm::ivec2(SHADOW_RESOLUTION, SHADOW_RESOLUTION);
+	sundepth.size = glm::ivec2(cfg.shadowSize, cfg.shadowSize);
 	sundepth.upload(NULL, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
 	sunfbo.bind();
 	sunfbo.attach(sundepth, GL_DEPTH_ATTACHMENT);
@@ -214,7 +214,7 @@ void app::initRendering() {
 	lampdepth.gen();
 	lampdepth.bind();
 	lampdepth.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	lampdepth.size = glm::ivec2(SHADOW_RESOLUTION, SHADOW_RESOLUTION);
+	lampdepth.size = glm::ivec2(cfg.shadowSize, cfg.shadowSize);
 	lampdepth.upload(NULL, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
 	lampfbo.bind();
 	lampfbo.attach(lampdepth, GL_DEPTH_ATTACHMENT);
@@ -265,7 +265,7 @@ void app::update() {
 	glfwGetCursorPos(w, &mx, &my);
 	glm::vec2 mouse(static_cast<float>(mx), static_cast<float>(my));
 	if (glfwGetMouseButton(w, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-		camorient += glm::vec2(mouse.y - prevm.y, prevm.x - mouse.x) * SENSITIVITY;
+		camorient += glm::vec2(mouse.y - prevm.y, prevm.x - mouse.x) * cfg.sensitivity;
 		if (camorient.x >  1.57f) camorient.x = 1.57f;
 		if (camorient.x < -1.57f) camorient.x = -1.57f;
 		if (camorient.y >  glm::pi<float>()) camorient.y -= glm::pi<float>() * 2;
@@ -293,29 +293,31 @@ void app::render() {
 	// shadow maps
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-	glCullFace(GL_FRONT);
-	sunfbo.bind();
-	glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
-	glClear(GL_DEPTH_BUFFER_BIT);
 	glm::mat4 sproj = glm::lookAt(sunpos / SUN_DIST * 1.2f, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	sproj = glm::ortho(-1.5f, 1.5f, -1.5f, 1.5f, 0.1f, 2.5f) * sproj;
-	renderScene(sproj, lightsh);
-	lightsh.use();
-	lightsh.uniformM4f("proj", sproj * trgmodel);
-	lightsh.uniformM4f("model", trgmodel);
-	renderTarget();
 	glm::mat4 lproj = glm::lookAt(lamppos, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	lproj = glm::perspective(2.f, 1.f, 0.1f, 2.5f) * lproj;
-	if (lamp) {
-		lampfbo.bind();
+	if (cfg.shadows) {
+		glCullFace(GL_FRONT);
+		sunfbo.bind();
+		glViewport(0, 0, cfg.shadowSize, cfg.shadowSize);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		renderScene(lproj, lightsh);
+		renderScene(sproj, lightsh);
 		lightsh.use();
-		lightsh.uniformM4f("proj", lproj * trgmodel);
+		lightsh.uniformM4f("proj", sproj * trgmodel);
 		lightsh.uniformM4f("model", trgmodel);
 		renderTarget();
+		if (lamp) {
+			lampfbo.bind();
+			glClear(GL_DEPTH_BUFFER_BIT);
+			renderScene(lproj, lightsh);
+			lightsh.use();
+			lightsh.uniformM4f("proj", lproj * trgmodel);
+			lightsh.uniformM4f("model", trgmodel);
+			renderTarget();
+		}
+		glCullFace(GL_BACK);
 	}
-	glCullFace(GL_BACK);
 	// scene
 	postfbo.bind();
 	glViewport(0, 0, ww, wh);
@@ -347,6 +349,7 @@ void app::render() {
 	sh3d.uniform3f("campos", cam);
 	sh3d.uniformM4f("sunproj", sproj);
 	sh3d.uniformM4f("lampproj", lproj);
+	sh3d.uniform1i("shadows", cfg.shadows);
 	sundepth.bind(GL_TEXTURE2);
 	lampdepth.bind(GL_TEXTURE3);
 	renderScene(vp, sh3d);
@@ -361,7 +364,7 @@ void app::render() {
 	bool horizontal = 1;
 	quad.bind();
 	blursh.use();
-	for (size_t i = 0; i < 8; ++i, horizontal = !horizontal) {
+	for (size_t i = 0; i < cfg.bloomPasses * 2; ++i, horizontal = !horizontal) {
 		tmpfbo.bind();
 		if (i == 0)
 			posttexover.bind(GL_TEXTURE0);
@@ -375,9 +378,9 @@ void app::render() {
 	// draw posteffects
 	glw::fbo::screen.bind();
 	postsh.use();
-	postsh.uniform1f("exposure", 1.f);
+	postsh.uniform1f("exposure", cfg.exposure);
 	posttex.bind(GL_TEXTURE0);
-	tmp2tex.bind(GL_TEXTURE1);
+	(cfg.bloomPasses > 0 ? tmp2tex : posttexover).bind(GL_TEXTURE1);
 	quad.drawElements(6);
 }
 void app::tick() {

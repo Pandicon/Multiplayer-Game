@@ -2,6 +2,8 @@ client/bin/*
 !client/bin/shaders
 !client/bin/textures
 !client/bin/models
+!client/bin/settings.json
+!client/bin/configs
 client/build/
 client/libs/
 client/include/
