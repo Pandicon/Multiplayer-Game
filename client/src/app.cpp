@@ -148,7 +148,9 @@ void app::setSun() {
 	auto time = std::chrono::duration_cast<std::chrono::seconds>(now - midnight).count();
 	float dayprogress = static_cast<float>(time) / 86400.f;
 	sunpos = glm::vec3(sinf(dayprogress*2.f*glm::pi<float>()), -cosf(dayprogress*2.f*glm::pi<float>()), 0.1f);
-	sunstrength = sunpos.y < 0 ? 0 : sunpos.y;
+	sunstrength = sunpos.y < 0 ? 0 : sunpos.y * 2;
+	if (sunstrength > 1)
+		sunstrength = 1;
 	skycol = glm::vec3(.2f, .7f, 1.f) * sunstrength;
 	lamp = sunpos.y < 0.1f;
 	lamppos = glm::vec3(0.f, 1.0f, 0.001f);
