@@ -19,12 +19,18 @@ namespace glgui {
 	extern glw::high::tiledTextureAtlas<16, 16> font;
 	extern glm::mat4 projs[anchor::COUNT];
 	extern glw::shader guish;
+	extern glw::shader guioutlsh;
 
 	template<typename F1, typename F2>
 	inline void init(const std::string &shadersdir, const std::string &fonttex, F1 terr, F2 sherr) {
 		glw::compileShaderFromFile(guish, (shadersdir + "/gui").c_str(), sherr);
 		guish.use();
 		guish.uniform1i("tex", 0);
+		glw::compileShaderFromFile(guioutlsh,
+			(shadersdir + "/gui.vert").c_str(),
+			(shadersdir + "/guioutl.frag").c_str(), sherr);
+		guioutlsh.use();
+		guioutlsh.uniform1i("tex", 0);
 		font.fromFile(fonttex, terr, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_NEAREST, GL_RGBA, GL_RGBA8);
 	}
 	void updateproj(int ww, int wh);
@@ -39,9 +45,14 @@ namespace glgui {
 
 		void render() const;
 		void setText(const std::string &t);
-	private:
+	protected:
 		std::string text;
 		glm::vec2 off;
+	};
+	class outlinedlabel : public label {
+	public:
+		void render() const;
+	private:
 	};
 };
 
@@ -52,6 +63,7 @@ namespace glgui {
 glw::high::tiledTextureAtlas<16, 16> glgui::font;
 glm::mat4 glgui::projs[anchor::COUNT];
 glw::shader glgui::guish;
+glw::shader glgui::guioutlsh;
 
 void glgui::updateproj(int ww, int wh) {
 	float hw = ww * .5f, hh = wh * .5f;
@@ -85,6 +97,12 @@ void glgui::label::setText(const std::string &t) {
 	if (c > w)
 		w = c;
 	off = glm::vec2(charsize.x * w, charsize.y * h) * glm::vec2(align % 3 * .5f, align / 3 * .5f);
+}
+void glgui::outlinedlabel::render() const {
+	glgui::guioutlsh.use();
+	glgui::guioutlsh.uniformM4f("proj", glgui::projs[anch]);
+	glgui::guioutlsh.uniform3f("col", color);
+	glw::high::rendStr(text, pos.x - off.x, pos.y - off.y, charsize.x, charsize.y, 0, glgui::font);
 }
 
 #endif
