@@ -38,7 +38,6 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 	trg.pos = glm::ivec2(2, 2);
 	setSun();
 	initRendering();
-	glw::checkError("init check", glw::justPrint);
 	resize(ww, wh);
 
 	cl.connect("127.0.0.1", "5050");
@@ -147,7 +146,7 @@ void app::setSun() {
     date->tm_sec = 0;
     auto midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
 	auto time = std::chrono::duration_cast<std::chrono::seconds>(now - midnight).count();
-	float dayprogress = static_cast<float>(time) / 86400.f - 0.45f;
+	float dayprogress = static_cast<float>(time) / 86400.f;
 	sunpos = glm::vec3(sinf(dayprogress*2.f*glm::pi<float>()), -cosf(dayprogress*2.f*glm::pi<float>()), 0.1f);
 	sunstrength = sunpos.y < 0 ? 0 : sunpos.y;
 	skycol = glm::vec3(.2f, .7f, 1.f) * sunstrength;
@@ -156,10 +155,15 @@ void app::setSun() {
 	sunpos *= SUN_DIST;
 }
 void app::initRendering() {
+	glw::checkError("init precheck", glw::justPrint);
 	initModels();
+	glw::checkError("init models check", glw::justPrint);
 	initShaders();
+	glw::checkError("init shaders check", glw::justPrint);
 	initTextures();
+	glw::checkError("init textures check", glw::justPrint);
 	initFramebuffers();
+	glw::checkError("init framebuffers check", glw::justPrint);
 }
 void app::initModels() {
 	float quadverts[] = {
@@ -281,17 +285,14 @@ void app::initFramebuffers() {
 	postfboms.gen();
 	posttexms.gen();
 	posttexms.bind();
-	posttexms.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
 	posttexms.size = glm::ivec2(ww, wh);
 	posttexms.generate(GL_RGBA16F, cfg.antialiasSamples);
 	posttexoverms.gen();
 	posttexoverms.bind();
-	posttexoverms.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
 	posttexoverms.size = glm::ivec2(ww, wh);
 	posttexoverms.generate(GL_RGBA8, cfg.antialiasSamples);
 	postdepthms.gen();
 	postdepthms.bind();
-	postdepthms.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
 	postdepthms.size = glm::ivec2(ww, wh);
 	postdepthms.generate(GL_DEPTH24_STENCIL8, cfg.antialiasSamples);
 	postfboms.bind();
