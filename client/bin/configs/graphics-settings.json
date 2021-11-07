@@ -2,26 +2,43 @@
 	"ultralow":{
 		"shadows":false,
 		"shadowResolution":1,
-		"bloomBlurPasses":0
+		"bloomBlurPasses":0,
+		"antialiasing":false,
+		"antialiasSamples":1
 	},
 	"low":{
 		"shadows":true,
 		"shadowResolution":512,
-		"bloomBlurPasses":1
+		"bloomBlurPasses":1,
+		"antialiasing":false,
+		"antialiasSamples":1
 	},
-	"normal":{
+	"middle":{
 		"shadows":true,
 		"shadowResolution":1024,
-		"bloomBlurPasses":2
+		"bloomBlurPasses":2,
+		"antialiasing":false,
+		"antialiasSamples":1
+	},
+	"default":{
+		"shadows":true,
+		"shadowResolution":2048,
+		"bloomBlurPasses":4,
+		"antialiasing":false,
+		"antialiasSamples":1
 	},
 	"high":{
 		"shadows":true,
 		"shadowResolution":2048,
-		"bloomBlurPasses":4
+		"bloomBlurPasses":4,
+		"antialiasing":true,
+		"antialiasSamples":4
 	},
 	"ultrahigh":{
 		"shadows":true,
 		"shadowResolution":4096,
-		"bloomBlurPasses":8
+		"bloomBlurPasses":8,
+		"antialiasing":true,
+		"antialiasSamples":5
 	}
 }

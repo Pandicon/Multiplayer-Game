@@ -26,6 +26,7 @@ public:
 private:
 	float dt;
 	int ww, wh;
+	float fov;
 
 	config cfg;
 
@@ -54,6 +55,14 @@ private:
 	glw::tex2 posttex;
 	glw::tex2 posttexover;
 	glw::tex2 postdepth;
+	glw::fbo postfboms;
+	glw::tex2multisample posttexms;
+	glw::tex2multisample posttexoverms;
+	glw::tex2multisample postdepthms;
+	glw::fbo postfbomscolor0;
+	glw::fbo postfbomscolor1;
+	glw::fbo postfbocolor0;
+	glw::fbo postfbocolor1;
 	glw::fbo tmpfbo;
 	glw::tex2 tmptex;
 	glw::fbo tmp2fbo;
@@ -78,6 +87,10 @@ private:
 	
 	void setSun();
 	void initRendering();
+	void initModels();
+	void initShaders();
+	void initTextures();
+	void initFramebuffers();
 	void update();
 	void render();
 	void tick();

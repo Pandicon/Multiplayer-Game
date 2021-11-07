@@ -1,6 +1,6 @@
 {
 	"sensitivity":0.01,
-	"graphics":"high",
+	"graphics":"default",
 	"maxfps":30,
 	"exposure":1.0
 }

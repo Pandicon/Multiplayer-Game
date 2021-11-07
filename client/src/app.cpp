@@ -8,6 +8,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "config.hpp"
 
+unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+
 constexpr float CAM_DIST = 1.6f;
 constexpr float SUN_DIST = 1000;
 
@@ -22,6 +24,7 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 		std::cout << "OpenGL load failed. Does your graphics card support OpenGL 4.0 core?" << std::endl;
 	}
 	cfg.load();
+	fov = 2.f;
 	for (size_t i = 0; i < BOARD_TILES; ++i) {
 		bool *tile = brd.walls[i % BOARD_SIZE][i / BOARD_SIZE];
 		for (uint8_t j = 0; j < 4; ++j)
@@ -70,7 +73,7 @@ void app::no_event_mainloop() {
 void app::resize(int ww, int wh) {
 	this->ww = ww;
 	this->wh = wh;
-	proj = glm::perspective(2.f, static_cast<float>(ww) / wh, .1f, 100.f);
+	proj = glm::perspective(fov, static_cast<float>(ww) / wh, .1f, 100.f);
 	posttex.bind();
 	posttex.size = glm::ivec2(ww, wh);
 	posttex.upload(NULL, GL_RGBA, GL_RGBA16F, GL_FLOAT);
@@ -80,6 +83,15 @@ void app::resize(int ww, int wh) {
 	postdepth.bind();
 	postdepth.size = glm::ivec2(ww, wh);
 	postdepth.upload(NULL, GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
+	posttexms.bind();
+	posttexms.size = glm::ivec2(ww, wh);
+	posttexms.generate(GL_RGBA16F, cfg.antialiasSamples);
+	posttexoverms.bind();
+	posttexoverms.size = glm::ivec2(ww, wh);
+	posttexoverms.generate(GL_RGBA8, cfg.antialiasSamples);
+	postdepthms.bind();
+	postdepthms.size = glm::ivec2(ww, wh);
+	postdepthms.generate(GL_DEPTH24_STENCIL8, cfg.antialiasSamples);
 	tmptex.bind();
 	tmptex.size = glm::ivec2(ww, wh);
 	tmptex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
@@ -135,7 +147,7 @@ void app::setSun() {
     date->tm_sec = 0;
     auto midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
 	auto time = std::chrono::duration_cast<std::chrono::seconds>(now - midnight).count();
-	float dayprogress = static_cast<float>(time) / 86400.f;
+	float dayprogress = static_cast<float>(time) / 86400.f - 0.45f;
 	sunpos = glm::vec3(sinf(dayprogress*2.f*glm::pi<float>()), -cosf(dayprogress*2.f*glm::pi<float>()), 0.1f);
 	sunstrength = sunpos.y < 0 ? 0 : sunpos.y;
 	skycol = glm::vec3(.2f, .7f, 1.f) * sunstrength;
@@ -144,6 +156,12 @@ void app::setSun() {
 	sunpos *= SUN_DIST;
 }
 void app::initRendering() {
+	initModels();
+	initShaders();
+	initTextures();
+	initFramebuffers();
+}
+void app::initModels() {
 	float quadverts[] = {
 		-1, -1, 0, 0,
 		 1, -1, 1, 0,
@@ -160,7 +178,8 @@ void app::initRendering() {
 	wall.load("./models/wall.obj");
 	robot.load("./models/robot.obj");
 	sun.load("./models/sun.obj");
-
+}
+void app::initShaders() {
 	glw::compileShaderFromFile(postsh, "./shaders/post", glw::default_shader_error_handler());
 	postsh.use();
 	postsh.uniform1i("tex", 0);
@@ -176,7 +195,8 @@ void app::initRendering() {
 	blursh.use();
 	blursh.uniform1i("tex", 0);
 	glw::compileShaderFromFile(trgsh, "./shaders/trg", glw::default_shader_error_handler());
-
+}
+void app::initTextures() {
 	boardtex.gen();
 	boardtex[0].bind();
 	boardtex[0].setWrapFilter({GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE}, GL_LINEAR, GL_LINEAR);
@@ -199,7 +219,8 @@ void app::initRendering() {
 	blacktex.bind();
 	blacktex.setWrapFilter({GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
 	blacktex.fromFile("./textures/black.png", glw::justPrint, "Could not find", GL_RGBA, GL_SRGB_ALPHA);
-
+}
+void app::initFramebuffers() {
 	sunfbo.gen();
 	sundepth.gen();
 	sundepth.bind();
@@ -256,8 +277,42 @@ void app::initRendering() {
 	postfbo.attach(posttex, GL_COLOR_ATTACHMENT0);
 	postfbo.attach(posttexover, GL_COLOR_ATTACHMENT1);
 	postfbo.attach(postdepth, GL_DEPTH_STENCIL_ATTACHMENT);
-	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	glDrawBuffers(2, attachments);
+	postfboms.gen();
+	posttexms.gen();
+	posttexms.bind();
+	posttexms.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
+	posttexms.size = glm::ivec2(ww, wh);
+	posttexms.generate(GL_RGBA16F, cfg.antialiasSamples);
+	posttexoverms.gen();
+	posttexoverms.bind();
+	posttexoverms.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
+	posttexoverms.size = glm::ivec2(ww, wh);
+	posttexoverms.generate(GL_RGBA8, cfg.antialiasSamples);
+	postdepthms.gen();
+	postdepthms.bind();
+	postdepthms.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
+	postdepthms.size = glm::ivec2(ww, wh);
+	postdepthms.generate(GL_DEPTH24_STENCIL8, cfg.antialiasSamples);
+	postfboms.bind();
+	postfboms.attach(posttexms, GL_COLOR_ATTACHMENT0);
+	postfboms.attach(posttexoverms, GL_COLOR_ATTACHMENT1);
+	postfboms.attach(postdepthms, GL_DEPTH_STENCIL_ATTACHMENT);
+	glDrawBuffers(2, attachments);
+	postfbocolor0.gen();
+	postfbocolor0.bind();
+	postfbocolor0.attach(posttex, GL_COLOR_ATTACHMENT0);
+	postfbocolor0.attach(postdepth, GL_DEPTH_STENCIL_ATTACHMENT);
+	postfbocolor1.gen();
+	postfbocolor1.bind();
+	postfbocolor1.attach(posttexover, GL_COLOR_ATTACHMENT0);
+	postfbomscolor0.gen();
+	postfbomscolor0.bind();
+	postfbomscolor0.attach(posttexms, GL_COLOR_ATTACHMENT0);
+	postfbomscolor0.attach(postdepthms, GL_DEPTH_STENCIL_ATTACHMENT);
+	postfbomscolor1.gen();
+	postfbomscolor1.bind();
+	postfbomscolor1.attach(posttexoverms, GL_COLOR_ATTACHMENT0);
 	glw::fbo::screen.bind();
 }
 void app::update() {
@@ -298,7 +353,6 @@ void app::render() {
 	glm::mat4 lproj = glm::lookAt(lamppos, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 	lproj = glm::perspective(2.f, 1.f, 0.1f, 2.5f) * lproj;
 	if (cfg.shadows) {
-		glCullFace(GL_FRONT);
 		sunfbo.bind();
 		glViewport(0, 0, cfg.shadowSize, cfg.shadowSize);
 		glClear(GL_DEPTH_BUFFER_BIT);
@@ -316,12 +370,15 @@ void app::render() {
 			lightsh.uniformM4f("model", trgmodel);
 			renderTarget();
 		}
-		glCullFace(GL_BACK);
 	}
 	// scene
-	postfbo.bind();
+	if (cfg.antialias) {
+		glEnable(GL_MULTISAMPLE);
+		postfboms.bind();
+	} else {
+		postfbo.bind();
+	}
 	glViewport(0, 0, ww, wh);
-	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	glDrawBuffers(1, attachments + 1);
 	glClearColor(0, 0, 0, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -358,6 +415,15 @@ void app::render() {
 	trgsh.uniformM4f("model", trgmodel);
 	trgsh.uniform3f("col", colors::toRGB[trg.color]);
 	renderTarget();
+	if (cfg.antialias) {
+		postfbomscolor0.bind(GL_READ_FRAMEBUFFER);
+		postfbocolor0.bind(GL_DRAW_FRAMEBUFFER);
+		postfbomscolor0.blit(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
+			GL_NEAREST, ww, wh, ww, wh);
+		postfbomscolor1.bind(GL_READ_FRAMEBUFFER);
+		postfbocolor1.bind(GL_DRAW_FRAMEBUFFER);
+		postfbomscolor1.blit(GL_COLOR_BUFFER_BIT, GL_NEAREST, ww, wh, ww, wh);
+	}
 	// blur of bloom
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);

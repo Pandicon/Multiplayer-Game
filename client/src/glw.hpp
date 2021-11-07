@@ -565,6 +565,7 @@ namespace glw {
 
 	using texture1 = texture<1, GL_TEXTURE_1D>;
 	using texture2 = texture<2, GL_TEXTURE_2D>;
+	using texture2multisample = texture<2, GL_TEXTURE_2D_MULTISAMPLE>;
 	using texture3 = texture<3, GL_TEXTURE_3D>;
 
 	using tex1 = texture1;
@@ -609,6 +610,13 @@ namespace glw {
 	template<size_t size>
 	using tex3_array = texture_array<size, tex3>;
 	using tex3_dynamic_array = dynamic_texture_array<tex3>;
+
+	class tex2multisample : public texture2multisample {
+	public:
+		inline void generate(GLenum dataChannels=GL_RGBA8, size_t samples=4) {
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, dataChannels, size.x, size.y, GL_TRUE);
+		}
+	};
 
 	template<typename F>
 	void loadTex2(tex2 &t, const char *file, F onErr, const std::string &emsg,
@@ -689,7 +697,11 @@ namespace glw {
 		inline void attach(const texture1 &t, GLenum attachment=GL_COLOR_ATTACHMENT0, GLenum target=GL_FRAMEBUFFER) { glFramebufferTexture1D(target, attachment, GL_TEXTURE_1D, t.id, 0); }
 		inline void attach(const texture2 &t, GLenum attachment=GL_COLOR_ATTACHMENT0, GLenum target=GL_FRAMEBUFFER) { glFramebufferTexture2D(target, attachment, GL_TEXTURE_2D, t.id, 0); }
 		inline void attach(const texture3 &t, GLenum attachment=GL_COLOR_ATTACHMENT0, int zoffset=0, GLenum target=GL_FRAMEBUFFER) { glFramebufferTexture3D(target, attachment, GL_TEXTURE_3D, t.id, 0, zoffset); }
+		inline void attach(const tex2multisample &t, GLenum attachment=GL_COLOR_ATTACHMENT0, GLenum target=GL_FRAMEBUFFER) { glFramebufferTexture2D(target, attachment, GL_TEXTURE_2D_MULTISAMPLE, t.id, 0); }
 		inline void attach(const rbo &r, GLenum attachment=GL_COLOR_ATTACHMENT0, GLenum rbotarget=GL_RENDERBUFFER, GLenum target=GL_FRAMEBUFFER) { glFramebufferRenderbuffer(target, attachment, rbotarget, r.id); }
+		inline void blit(GLbitfield mask, GLenum inter, int wr, int hr, int wd, int hd, int xr=0, int yr=0, int xd=0, int yd=0) {
+			glBlitFramebuffer(xr, yr, wr, hr, xd, yd, wd, hd, mask, inter);
+		}
 		inline void swap(fbo &o) { std::swap(id, o.id); }
 		
 		inline static bool complete(GLenum target=GL_FRAMEBUFFER) { return glCheckFramebufferStatus(target) == GL_FRAMEBUFFER_COMPLETE; }
