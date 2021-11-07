@@ -101,7 +101,8 @@ void app::resize(int ww, int wh) {
 	tmp2tex.bind();
 	tmp2tex.size = glm::ivec2(ww, wh);
 	tmp2tex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
-	glgui::updateproj(ww, wh);
+	gui.size = glm::ivec2(ww, wh);
+	gui.resize();
 }
 void app::recv(const packet &p) {
 	switch (p.type()) {
@@ -328,12 +329,38 @@ void app::initFramebuffers() {
 void app::initGUI() {
 	glgui::init("./shaders", "./textures/font.png", glw::justPrint, glw::default_shader_error_handler());
 
+	/*glgui::outlinedlabel lbtitle;
+	glgui::button btconnect;
 	lbtitle.pos = glm::ivec2(0, 50);
 	lbtitle.charsize = glm::ivec2(25, 50);
 	lbtitle.anch = glgui::anchor::TOPMID;
 	lbtitle.align = glgui::anchor::TOPMID;
 	lbtitle.color = glm::vec3(1, 1, 1);
-	lbtitle.setText("Multiplayer-Game\nclient");
+	lbtitle.text = "Multiplayer-Game\nclient";
+	lbtitle.init();
+	btconnect.pos = glm::ivec2(0, 360);
+	btconnect.size = glm::ivec2(400, 70);
+	btconnect.charsize = glm::ivec2(25, 50);
+	btconnect.anch = glgui::anchor::TOPMID;
+	btconnect.align = glgui::anchor::TOPMID;
+	btconnect.textalign = glgui::anchor::CENTER;
+	btconnect.bgcolor = glm::vec3(1, 1, 1);
+	btconnect.text = "connect";
+	btconnect.init();*/
+	lbtitle.pos = glm::ivec2(0, 50);
+	lbtitle.anch = glgui::anchor::TOPMID;
+	lbtitle.align = glgui::anchor::TOPMID;
+	lbtitle.color = glm::vec3(1, 1, 1);
+	lbtitle.outline = true;
+	lbtitle.charsize = glm::ivec2(30, 60);
+	lbtitle.setText("Multiplayer-game\nclient");
+	gui.controls.push_back(&lbtitle);
+	gui.pos = glm::ivec2(0, 0);
+	gui.size = glm::ivec2(ww, wh);
+	gui.anch = glgui::anchor::TOPLEFT;
+	gui.align = glgui::anchor::TOPLEFT;
+	gui.focused = false;
+	gui.init();
 }
 void app::update() {
 	double mx, my;
@@ -345,8 +372,9 @@ void app::update() {
 		if (camorient.x < -1.57f) camorient.x = -1.57f;
 		if (camorient.y >  glm::pi<float>()) camorient.y -= glm::pi<float>() * 2;
 		if (camorient.y < -glm::pi<float>()) camorient.y += glm::pi<float>() * 2;
+		prevm = mouse;
 	}
-	prevm = mouse;
+	gui.update(dt);
 }
 void app::render() {
 	renderGame();
@@ -358,7 +386,7 @@ void app::render() {
 	(cfg.bloomPasses > 0 ? tmp2tex : posttexover).bind(GL_TEXTURE1);
 	quad.drawElements(6);
 	if (stg == gamestage::MENU) {
-		lbtitle.render();
+		gui.render(glm::ortho<float>(0, ww, wh, 0));
 	}
 }
 void app::renderGame() {

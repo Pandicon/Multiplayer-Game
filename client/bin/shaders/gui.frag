@@ -3,10 +3,15 @@ in vec2 tpos;
 
 out vec4 outcol;
 
+uniform bool usetex;
 uniform vec3 col;
 uniform sampler2D tex;
 
 void main() {
+	if (!usetex) {
+		outcol = vec4(col, 1);
+		return;
+	}
 	outcol = texture(tex, tpos);
 	if (outcol.a < 0.5)
 		discard;

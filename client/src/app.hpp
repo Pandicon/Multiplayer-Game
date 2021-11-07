@@ -93,7 +93,8 @@ private:
 	
 	gamestage stg;
 
-	glgui::outlinedlabel lbtitle;
+	glgui::container gui;
+	glgui::label lbtitle;
 
 	void setSun();
 	void initRendering();
