@@ -34,17 +34,21 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 		bots[i].color = static_cast<colors::color_t>(i);
 		bots[i].pos = glm::ivec2(i, 0);
 	}
-	trg.color = colors::GREEN;
-	trg.pos = glm::ivec2(2, 2);
+	trg.color = colors::YELLOW;
+	trg.pos = glm::ivec2(3, 1);
 	setSun();
 	initRendering();
 	resize(ww, wh);
 
-	cl.connect("127.0.0.1", "5050");
+	stg = gamestage::MENU;
+
+	//cl.connect("127.0.0.1", "5050");
 }
 app::~app() {
-	cl.send(packet(packets::C_S_DISCONNECT, nullptr, 0));
-	cl.disconnect();
+	if (cl.running) {
+		cl.send(packet(packets::C_S_DISCONNECT, nullptr, 0));
+		cl.disconnect();
+	}
 }
 void app::mainloop() {
 	double prev = glfwGetTime();
@@ -97,6 +101,7 @@ void app::resize(int ww, int wh) {
 	tmp2tex.bind();
 	tmp2tex.size = glm::ivec2(ww, wh);
 	tmp2tex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
+	glgui::updateproj(ww, wh);
 }
 void app::recv(const packet &p) {
 	switch (p.type()) {
@@ -166,6 +171,8 @@ void app::initRendering() {
 	glw::checkError("init textures check", glw::justPrint);
 	initFramebuffers();
 	glw::checkError("init framebuffers check", glw::justPrint);
+	initGUI();
+	glw::checkError("init gui check", glw::justPrint);
 }
 void app::initModels() {
 	float quadverts[] = {
@@ -318,6 +325,16 @@ void app::initFramebuffers() {
 	postfbomscolor1.attach(posttexoverms, GL_COLOR_ATTACHMENT0);
 	glw::fbo::screen.bind();
 }
+void app::initGUI() {
+	glgui::init("./shaders", "./textures/font.png", glw::justPrint, glw::default_shader_error_handler());
+
+	lbtitle.pos = glm::ivec2(0, 50);
+	lbtitle.charsize = glm::ivec2(25, 50);
+	lbtitle.anch = glgui::anchor::TOPMID;
+	lbtitle.align = glgui::anchor::TOPMID;
+	lbtitle.color = glm::vec3(1, 1, 1);
+	lbtitle.setText("Multiplayer-Game\nclient");
+}
 void app::update() {
 	double mx, my;
 	glfwGetCursorPos(w, &mx, &my);
@@ -332,6 +349,19 @@ void app::update() {
 	prevm = mouse;
 }
 void app::render() {
+	renderGame();
+	// draw posteffects
+	glw::fbo::screen.bind();
+	postsh.use();
+	postsh.uniform1f("exposure", cfg.exposure);
+	posttex.bind(GL_TEXTURE0);
+	(cfg.bloomPasses > 0 ? tmp2tex : posttexover).bind(GL_TEXTURE1);
+	quad.drawElements(6);
+	if (stg == gamestage::MENU) {
+		lbtitle.render();
+	}
+}
+void app::renderGame() {
 	// calculate camera view
 	float camx = sinf(camorient.y) * cosf(camorient.x);
 	float camy = sinf(camorient.x);
@@ -444,13 +474,6 @@ void app::render() {
 		tmpfbo.swap(tmp2fbo);
 		tmptex.swap(tmp2tex);
 	}
-	// draw posteffects
-	glw::fbo::screen.bind();
-	postsh.use();
-	postsh.uniform1f("exposure", cfg.exposure);
-	posttex.bind(GL_TEXTURE0);
-	(cfg.bloomPasses > 0 ? tmp2tex : posttexover).bind(GL_TEXTURE1);
-	quad.drawElements(6);
 }
 void app::tick() {
 	update();

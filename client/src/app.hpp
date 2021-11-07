@@ -8,9 +8,15 @@
 #include "board.hpp"
 #include "bot.hpp"
 #include "config.hpp"
+#include "glgui.hpp"
 #include "glw.hpp"
 #include "mesh.hpp"
 #include "networking/client.hpp"
+
+enum class gamestage {
+	MENU,
+	IN_GAME
+};
 
 class app {
 public:
@@ -85,14 +91,20 @@ private:
 	bot bots[5];
 	target trg;
 	
+	gamestage stg;
+
+	glgui::label lbtitle;
+
 	void setSun();
 	void initRendering();
 	void initModels();
 	void initShaders();
 	void initTextures();
 	void initFramebuffers();
+	void initGUI();
 	void update();
 	void render();
+	void renderGame();
 	void tick();
 	void renderScene(const glm::mat4 &vp, glw::shader &sh);
 	void renderTarget();

@@ -28,3 +28,5 @@ int main() {
 
 #define GLW_HPP_DECLS
 #include "glw.hpp"
+#define GLGUI_IMPL
+#include "glgui.hpp"
