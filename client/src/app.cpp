@@ -394,8 +394,8 @@ void app::update() {
 		if (camorient.x < -1.57f) camorient.x = -1.57f;
 		if (camorient.y >  glm::pi<float>()) camorient.y -= glm::pi<float>() * 2;
 		if (camorient.y < -glm::pi<float>()) camorient.y += glm::pi<float>() * 2;
-		prevm = mouse;
 	}
+	prevm = mouse;
 	gui.update(dt);
 }
 void app::render() {
