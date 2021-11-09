@@ -82,6 +82,11 @@ void app::click(int btn, int act, int mod) {
 		gui.mouseup(btn, x, y);
 	}
 }
+void app::scroll(int x, int y) {
+	(void)x;
+	fov -= cfg.scrollsensitivity * y;
+	proj = glm::perspective(fov, static_cast<float>(ww) / wh, .1f, 100.f);
+}
 void app::resize(int ww, int wh) {
 	this->ww = ww;
 	this->wh = wh;

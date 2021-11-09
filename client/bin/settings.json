@@ -1,5 +1,6 @@
 {
 	"sensitivity":0.01,
+	"scrollSensitivity":0.03,
 	"graphics":"default",
 	"maxfps":30,
 	"exposure":1.0,

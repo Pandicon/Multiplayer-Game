@@ -13,6 +13,11 @@ void click_main(GLFWwindow *w, int btn, int act, int mod) {
 	(void)w;
 	a->click(btn, act, mod);
 }
+void scroll_main(GLFWwindow *w, double x, double y) {
+	(void)w;
+	a->scroll(x, y);
+}
+
 
 int main() {
 	glfwInit();
@@ -25,6 +30,7 @@ int main() {
 	a = new app(800, 600, "Multiplayer Game - client");
 	glfwSetFramebufferSizeCallback(a->w, resize_main);
 	glfwSetMouseButtonCallback(a->w, click_main);
+	glfwSetScrollCallback(a->w, scroll_main);
 	a->mainloop();
 	delete a;
 	glfwTerminate();

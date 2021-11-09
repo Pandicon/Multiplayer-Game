@@ -14,6 +14,7 @@ struct serverinfo {
 class config {
 public:
 	float sensitivity;
+	float scrollsensitivity;
 	std::string grMode;
 	int sleepms;
 	float exposure;
@@ -36,6 +37,7 @@ public:
 		nlohmann::json j = nlohmann::json::parse(fglobal);
 		fglobal.close();
 		sensitivity = j["sensitivity"];
+		scrollsensitivity = j["scrollSensitivity"];
 		grMode = j["graphics"];
 		sleepms = 1000 / static_cast<int>(j["maxfps"]);
 		exposure = j["exposure"];
