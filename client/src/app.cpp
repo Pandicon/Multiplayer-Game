@@ -34,17 +34,19 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 		bots[i].color = static_cast<colors::color_t>(i);
 		bots[i].pos = glm::ivec2(i, 0);
 	}
-	trg.color = colors::GREEN;
-	trg.pos = glm::ivec2(2, 2);
+	trg.color = colors::YELLOW;
+	trg.pos = glm::ivec2(3, 1);
 	setSun();
 	initRendering();
 	resize(ww, wh);
 
-	cl.connect("127.0.0.1", "5050");
+	stg = gamestage::MENU;
 }
 app::~app() {
-	cl.send(packet(packets::C_S_DISCONNECT, nullptr, 0));
-	cl.disconnect();
+	if (cl.running) {
+		cl.send(packet(packets::C_S_DISCONNECT, nullptr, 0));
+		cl.disconnect();
+	}
 }
 void app::mainloop() {
 	double prev = glfwGetTime();
@@ -67,6 +69,17 @@ void app::no_event_mainloop() {
 		tick();
 		glfwSwapBuffers(w);
 		std::this_thread::sleep_for(std::chrono::milliseconds(cfg.sleepms));
+	}
+}
+void app::click(int btn, int act, int mod) {
+	(void)mod;
+	double mx, my;
+	glfwGetCursorPos(w, &mx, &my);
+	float x = static_cast<float>(mx), y = static_cast<float>(my);
+	if (act == GLFW_PRESS) {
+		gui.mousedown(btn, x, y);
+	} else if (act == GLFW_RELEASE) {
+		gui.mouseup(btn, x, y);
 	}
 }
 void app::resize(int ww, int wh) {
@@ -97,6 +110,8 @@ void app::resize(int ww, int wh) {
 	tmp2tex.bind();
 	tmp2tex.size = glm::ivec2(ww, wh);
 	tmp2tex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
+	gui.size = glm::ivec2(ww, wh);
+	gui.resize();
 }
 void app::recv(const packet &p) {
 	switch (p.type()) {
@@ -136,6 +151,11 @@ void app::recv(const packet &p) {
 		break;
 	}
 }
+void app::connect() {
+	std::cout << "[Networking]: connecting to " << cfg.defaultserv.ip << ":" << cfg.defaultserv.port << std::endl;
+	cl.connect(cfg.defaultserv.ip, cfg.defaultserv.port);
+	stg = gamestage::IN_GAME;
+}
 
 void app::setSun() {
 	auto now = std::chrono::system_clock::now();
@@ -166,6 +186,8 @@ void app::initRendering() {
 	glw::checkError("init textures check", glw::justPrint);
 	initFramebuffers();
 	glw::checkError("init framebuffers check", glw::justPrint);
+	initGUI();
+	glw::checkError("init gui check", glw::justPrint);
 }
 void app::initModels() {
 	float quadverts[] = {
@@ -318,6 +340,40 @@ void app::initFramebuffers() {
 	postfbomscolor1.attach(posttexoverms, GL_COLOR_ATTACHMENT0);
 	glw::fbo::screen.bind();
 }
+
+void connect_cb(void *a) {
+	((app *)a)->connect();
+}
+
+void app::initGUI() {
+	glgui::init("./shaders", "./textures/font.png", glw::justPrint, glw::default_shader_error_handler());
+
+	lbtitle.pos = glm::ivec2(0, 50);
+	lbtitle.anch = glgui::anchor::TOPMID;
+	lbtitle.align = glgui::anchor::TOPMID;
+	lbtitle.color = glm::vec3(1, 1, 1);
+	lbtitle.outline = true;
+	lbtitle.charsize = glm::ivec2(30, 60);
+	lbtitle.setText("Multiplayer-game\nclient");
+	gui.controls.push_back(&lbtitle);
+	btnconnect.pos = glm::ivec2(0, 360);
+	btnconnect.size = glm::ivec2(400, 70);
+	btnconnect.anch = glgui::anchor::TOPMID;
+	btnconnect.align = glgui::anchor::TOPMID;
+	btnconnect.textalign = glgui::anchor::CENTER;
+	btnconnect.bgcolor = glm::vec3(.7f, 1.f, 1.f);
+	btnconnect.charsize = glm::ivec2(30, 60);
+	btnconnect.setText("connect");
+	btnconnect.data = this;
+	btnconnect.cb = connect_cb;
+	gui.controls.push_back(&btnconnect);
+	gui.pos = glm::ivec2(0, 0);
+	gui.size = glm::ivec2(ww, wh);
+	gui.anch = glgui::anchor::TOPLEFT;
+	gui.align = glgui::anchor::TOPLEFT;
+	gui.focused = false;
+	gui.init();
+}
 void app::update() {
 	double mx, my;
 	glfwGetCursorPos(w, &mx, &my);
@@ -328,10 +384,42 @@ void app::update() {
 		if (camorient.x < -1.57f) camorient.x = -1.57f;
 		if (camorient.y >  glm::pi<float>()) camorient.y -= glm::pi<float>() * 2;
 		if (camorient.y < -glm::pi<float>()) camorient.y += glm::pi<float>() * 2;
+		prevm = mouse;
 	}
-	prevm = mouse;
+	gui.update(dt);
 }
 void app::render() {
+	renderGame();
+	// draw posteffects
+	if (stg == gamestage::MENU && cfg.menuBlur > 0) {
+		tmp2fbo.bind();
+	} else {
+		glw::fbo::screen.bind();
+	}
+	postsh.use();
+	postsh.uniform1f("exposure", cfg.exposure);
+	posttex.bind(GL_TEXTURE0);
+	(cfg.bloomPasses > 0 ? tmp2tex : posttexover).bind(GL_TEXTURE1);
+	quad.drawElements(6);
+	if (stg == gamestage::MENU) {
+		bool horizontal = 1;
+		quad.bind();
+		blursh.use();
+		for (size_t i = cfg.menuBlur * 2; i; --i, horizontal = !horizontal) {
+			if (i == 1)
+				glw::fbo::screen.bind();
+			else
+				tmpfbo.bind();
+			tmp2tex.bind(GL_TEXTURE0);
+			blursh.uniform1i("horizontal", horizontal);
+			quad.drawElements(6);
+			tmpfbo.swap(tmp2fbo);
+			tmptex.swap(tmp2tex);
+		}
+		gui.render(glm::ortho<float>(0, ww, wh, 0));
+	}
+}
+void app::renderGame() {
 	// calculate camera view
 	float camx = sinf(camorient.y) * cosf(camorient.x);
 	float camy = sinf(camorient.x);
@@ -444,13 +532,6 @@ void app::render() {
 		tmpfbo.swap(tmp2fbo);
 		tmptex.swap(tmp2tex);
 	}
-	// draw posteffects
-	glw::fbo::screen.bind();
-	postsh.use();
-	postsh.uniform1f("exposure", cfg.exposure);
-	posttex.bind(GL_TEXTURE0);
-	(cfg.bloomPasses > 0 ? tmp2tex : posttexover).bind(GL_TEXTURE1);
-	quad.drawElements(6);
 }
 void app::tick() {
 	update();

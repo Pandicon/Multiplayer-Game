@@ -745,8 +745,8 @@ namespace glw {
 			float v[16] = {
 				x,     y,     0, 0,
 				x + w, y,     0, 0,
-				x + w, y - h, 0, 0,
-				x,     y - h, 0, 0
+				x + w, y + h, 0, 0,
+				x,     y + h, 0, 0
 			};
 			for (auto c = str.begin(); c != str.end(); ++c) {
 				if (*c == '\n') {
@@ -755,7 +755,7 @@ namespace glw {
 					v[0] = v[12] = x;
 					v[4] = v[8] = x + w;
 					v[1] = v[5] = y;
-					v[9] = v[13] = y - h;
+					v[9] = v[13] = y + h;
 					continue;
 				}
 				font.getuv(static_cast<size_t>(*c), v[2], v[3], v[10], v[11]);

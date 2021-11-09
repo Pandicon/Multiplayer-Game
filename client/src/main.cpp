@@ -9,6 +9,10 @@ void resize_main(GLFWwindow *w, int x, int y) {
 	(void)w;
 	a->resize(x, y);
 }
+void click_main(GLFWwindow *w, int btn, int act, int mod) {
+	(void)w;
+	a->click(btn, act, mod);
+}
 
 int main() {
 	glfwInit();
@@ -20,6 +24,7 @@ int main() {
 #endif
 	a = new app(800, 600, "Multiplayer Game - client");
 	glfwSetFramebufferSizeCallback(a->w, resize_main);
+	glfwSetMouseButtonCallback(a->w, click_main);
 	a->mainloop();
 	delete a;
 	glfwTerminate();
@@ -28,3 +33,5 @@ int main() {
 
 #define GLW_HPP_DECLS
 #include "glw.hpp"
+#define GLGUI_IMPL
+#include "glgui.hpp"

@@ -2,5 +2,17 @@
 	"sensitivity":0.01,
 	"graphics":"default",
 	"maxfps":30,
-	"exposure":1.0
+	"exposure":1.0,
+	"defaultServer":{
+		"name":"localhost",
+		"ip":"127.0.0.1",
+		"port":5050
+	},
+	"serverList":[
+		{
+			"name":"localhost",
+			"ip":"127.0.0.1",
+			"port":5050
+		}
+	]
 }
