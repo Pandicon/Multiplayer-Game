@@ -85,6 +85,8 @@ void app::click(int btn, int act, int mod) {
 void app::scroll(int x, int y) {
 	(void)x;
 	fov -= cfg.scrollsensitivity * y;
+	if (fov > 2.5f) fov = 2.5f;
+	if (fov < 0.5f) fov = 0.5f;
 	proj = glm::perspective(fov, static_cast<float>(ww) / wh, .1f, 100.f);
 }
 void app::resize(int ww, int wh) {
