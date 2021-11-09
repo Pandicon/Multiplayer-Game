@@ -8,12 +8,12 @@ uniform vec3 col;
 uniform sampler2D tex;
 
 void main() {
-	if (!usetex) {
+	if (usetex) {
+		outcol = texture(tex, tpos);
+		if (outcol.a < 0.5)
+			discard;
+		outcol.xyz *= col;
+	} else {
 		outcol = vec4(col, 1);
-		return;
 	}
-	outcol = texture(tex, tpos);
-	if (outcol.a < 0.5)
-		discard;
-	outcol.xyz *= col;
 }

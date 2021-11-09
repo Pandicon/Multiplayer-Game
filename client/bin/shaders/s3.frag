@@ -21,7 +21,7 @@ uniform sampler2D sundepth;
 uniform sampler2D lampdepth;
 
 const float specfactor = 2.0;
-const float bias = 0.005;
+const float bias = 0.0005;
 
 float getShadow(vec3 flpos, sampler2D smap) {
 	flpos = flpos * 0.5 + 0.5;

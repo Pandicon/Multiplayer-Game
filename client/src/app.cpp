@@ -41,8 +41,6 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 	resize(ww, wh);
 
 	stg = gamestage::MENU;
-
-	//cl.connect("127.0.0.1", "5050");
 }
 app::~app() {
 	if (cl.running) {
@@ -71,6 +69,17 @@ void app::no_event_mainloop() {
 		tick();
 		glfwSwapBuffers(w);
 		std::this_thread::sleep_for(std::chrono::milliseconds(cfg.sleepms));
+	}
+}
+void app::click(int btn, int act, int mod) {
+	(void)mod;
+	double mx, my;
+	glfwGetCursorPos(w, &mx, &my);
+	float x = static_cast<float>(mx), y = static_cast<float>(my);
+	if (act == GLFW_PRESS) {
+		gui.mousedown(btn, x, y);
+	} else if (act == GLFW_RELEASE) {
+		gui.mouseup(btn, x, y);
 	}
 }
 void app::resize(int ww, int wh) {
@@ -141,6 +150,11 @@ void app::recv(const packet &p) {
 	default:
 		break;
 	}
+}
+void app::connect() {
+	std::cout << "[Networking]: connecting to " << cfg.defaultserv.ip << ":" << cfg.defaultserv.port << std::endl;
+	cl.connect(cfg.defaultserv.ip, cfg.defaultserv.port);
+	stg = gamestage::IN_GAME;
 }
 
 void app::setSun() {
@@ -326,27 +340,14 @@ void app::initFramebuffers() {
 	postfbomscolor1.attach(posttexoverms, GL_COLOR_ATTACHMENT0);
 	glw::fbo::screen.bind();
 }
+
+void connect_cb(void *a) {
+	((app *)a)->connect();
+}
+
 void app::initGUI() {
 	glgui::init("./shaders", "./textures/font.png", glw::justPrint, glw::default_shader_error_handler());
 
-	/*glgui::outlinedlabel lbtitle;
-	glgui::button btconnect;
-	lbtitle.pos = glm::ivec2(0, 50);
-	lbtitle.charsize = glm::ivec2(25, 50);
-	lbtitle.anch = glgui::anchor::TOPMID;
-	lbtitle.align = glgui::anchor::TOPMID;
-	lbtitle.color = glm::vec3(1, 1, 1);
-	lbtitle.text = "Multiplayer-Game\nclient";
-	lbtitle.init();
-	btconnect.pos = glm::ivec2(0, 360);
-	btconnect.size = glm::ivec2(400, 70);
-	btconnect.charsize = glm::ivec2(25, 50);
-	btconnect.anch = glgui::anchor::TOPMID;
-	btconnect.align = glgui::anchor::TOPMID;
-	btconnect.textalign = glgui::anchor::CENTER;
-	btconnect.bgcolor = glm::vec3(1, 1, 1);
-	btconnect.text = "connect";
-	btconnect.init();*/
 	lbtitle.pos = glm::ivec2(0, 50);
 	lbtitle.anch = glgui::anchor::TOPMID;
 	lbtitle.align = glgui::anchor::TOPMID;
@@ -355,6 +356,17 @@ void app::initGUI() {
 	lbtitle.charsize = glm::ivec2(30, 60);
 	lbtitle.setText("Multiplayer-game\nclient");
 	gui.controls.push_back(&lbtitle);
+	btnconnect.pos = glm::ivec2(0, 360);
+	btnconnect.size = glm::ivec2(400, 70);
+	btnconnect.anch = glgui::anchor::TOPMID;
+	btnconnect.align = glgui::anchor::TOPMID;
+	btnconnect.textalign = glgui::anchor::CENTER;
+	btnconnect.bgcolor = glm::vec3(.7f, 1.f, 1.f);
+	btnconnect.charsize = glm::ivec2(30, 60);
+	btnconnect.setText("connect");
+	btnconnect.data = this;
+	btnconnect.cb = connect_cb;
+	gui.controls.push_back(&btnconnect);
 	gui.pos = glm::ivec2(0, 0);
 	gui.size = glm::ivec2(ww, wh);
 	gui.anch = glgui::anchor::TOPLEFT;
@@ -379,13 +391,31 @@ void app::update() {
 void app::render() {
 	renderGame();
 	// draw posteffects
-	glw::fbo::screen.bind();
+	if (stg == gamestage::MENU && cfg.menuBlur > 0) {
+		tmp2fbo.bind();
+	} else {
+		glw::fbo::screen.bind();
+	}
 	postsh.use();
 	postsh.uniform1f("exposure", cfg.exposure);
 	posttex.bind(GL_TEXTURE0);
 	(cfg.bloomPasses > 0 ? tmp2tex : posttexover).bind(GL_TEXTURE1);
 	quad.drawElements(6);
 	if (stg == gamestage::MENU) {
+		bool horizontal = 1;
+		quad.bind();
+		blursh.use();
+		for (size_t i = cfg.menuBlur * 2; i; --i, horizontal = !horizontal) {
+			if (i == 1)
+				glw::fbo::screen.bind();
+			else
+				tmpfbo.bind();
+			tmp2tex.bind(GL_TEXTURE0);
+			blursh.uniform1i("horizontal", horizontal);
+			quad.drawElements(6);
+			tmpfbo.swap(tmp2fbo);
+			tmptex.swap(tmp2tex);
+		}
 		gui.render(glm::ortho<float>(0, ww, wh, 0));
 	}
 }

@@ -27,8 +27,10 @@ public:
 
 	void mainloop();
 	void no_event_mainloop();
+	void click(int btn, int act, int mod);
 	void resize(int ww, int wh);
 	void recv(const packet &p);
+	void connect();
 private:
 	float dt;
 	int ww, wh;
@@ -95,6 +97,7 @@ private:
 
 	glgui::container gui;
 	glgui::label lbtitle;
+	glgui::button btnconnect;
 
 	void setSun();
 	void initRendering();
