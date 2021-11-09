@@ -153,8 +153,13 @@ void app::recv(const packet &p) {
 }
 void app::connect() {
 	std::cout << "[Networking]: connecting to " << cfg.defaultserv.ip << ":" << cfg.defaultserv.port << std::endl;
-	cl.connect(cfg.defaultserv.ip, cfg.defaultserv.port);
-	stg = gamestage::IN_GAME;
+	try {
+		cl.connect(cfg.defaultserv.ip, cfg.defaultserv.port);
+		stg = gamestage::IN_GAME;
+	} catch (std::system_error e) {
+		std::cout << "[Networking]: failed connecting to " << cfg.defaultserv.ip << ":" << cfg.defaultserv.port
+			<< " " << e.what() << std::endl;
+	}
 }
 
 void app::setSun() {
