@@ -153,7 +153,7 @@ void app::recv(const packet &p) {
 	case packets::S_C_TARGET:
 		trg.pos.x = p.data()[0] >> 4 & 0xf;
 		trg.pos.y = p.data()[0] & 0xf;
-		trg.color = p.data()[1] & 0b111;
+		trg.color = static_cast<colors::color_t>(p.data()[1] & 0b111);
 		break;
 	case packets::S_C_MESSAGE:
 		std::cout << "[Chat]: " << std::string(p.data(), p.size()) << std::endl;
