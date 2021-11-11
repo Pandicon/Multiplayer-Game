@@ -17,7 +17,15 @@ void scroll_main(GLFWwindow *w, double x, double y) {
 	(void)w;
 	a->scroll(x, y);
 }
-
+void key_main(GLFWwindow* w, int key, int scancode, int action, int mods) {
+	(void)w;
+	(void)scancode;
+	a->key(key, action, mods);
+}
+void character_main(GLFWwindow* w, unsigned int codepoint) {
+	(void)w;
+	a->write(codepoint);
+}
 
 int main() {
 	glfwInit();
@@ -31,6 +39,8 @@ int main() {
 	glfwSetFramebufferSizeCallback(a->w, resize_main);
 	glfwSetMouseButtonCallback(a->w, click_main);
 	glfwSetScrollCallback(a->w, scroll_main);
+	glfwSetKeyCallback(a->w, key_main);
+	glfwSetCharCallback(a->w, character_main);
 	a->mainloop();
 	delete a;
 	glfwTerminate();

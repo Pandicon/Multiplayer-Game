@@ -29,6 +29,8 @@ public:
 	void no_event_mainloop();
 	void click(int btn, int act, int mod);
 	void scroll(int x, int y);
+	void key(int key, int act, int mod);
+	void write(unsigned int c);
 	void resize(int ww, int wh);
 	void recv(const packet &p);
 	void connect();
@@ -98,6 +100,8 @@ private:
 
 	glgui::container gui;
 	glgui::label lbtitle;
+	glgui::textbox tbip;
+	glgui::textbox tbport;
 	glgui::button btnconnect;
 
 	void setSun();

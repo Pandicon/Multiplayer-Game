@@ -77,6 +77,8 @@ void app::click(int btn, int act, int mod) {
 	glfwGetCursorPos(w, &mx, &my);
 	float x = static_cast<float>(mx), y = static_cast<float>(my);
 	if (act == GLFW_PRESS) {
+		if (btn == GLFW_MOUSE_BUTTON_LEFT)
+			gui.unfocus();
 		gui.mousedown(btn, x, y);
 	} else if (act == GLFW_RELEASE) {
 		gui.mouseup(btn, x, y);
@@ -88,6 +90,22 @@ void app::scroll(int x, int y) {
 	if (fov > 2.5f) fov = 2.5f;
 	if (fov < 0.5f) fov = 0.5f;
 	proj = glm::perspective(fov, static_cast<float>(ww) / wh, .1f, 100.f);
+}
+void app::key(int key, int act, int mod) {
+	(void)mod;
+	if (act == GLFW_PRESS) {
+		gui.keydown(key);
+	} else if (act == GLFW_RELEASE) {
+		gui.keyup(key);
+	}
+}
+void app::write(unsigned int c) {
+	if (c > 127) {
+		std::cout << "[Input]: can't process non ASCII characters." << std::endl;
+		return;
+	}
+	char cc = static_cast<char>(c);
+	gui.keywrite(cc);
 }
 void app::resize(int ww, int wh) {
 	this->ww = ww;
@@ -165,12 +183,12 @@ void app::recv(const packet &p) {
 	}
 }
 void app::connect() {
-	std::cout << "[Networking]: connecting to " << cfg.defaultserv.ip << ":" << cfg.defaultserv.port << std::endl;
+	std::cout << "[Networking]: connecting to " << tbip.text << ":" << tbport.text << std::endl;
 	try {
-		cl.connect(cfg.defaultserv.ip, cfg.defaultserv.port);
+		cl.connect(tbip.text, tbport.text);
 		stg = gamestage::IN_GAME;
 	} catch (std::system_error e) {
-		std::cout << "[Networking]: failed connecting to " << cfg.defaultserv.ip << ":" << cfg.defaultserv.port
+		std::cout << "[Networking]: failed connecting to " << tbip.text << ":" << tbport.text
 			<< " " << e.what() << std::endl;
 	}
 }
@@ -366,30 +384,44 @@ void connect_cb(void *a) {
 void app::initGUI() {
 	glgui::init("./shaders", "./textures/font.png", glw::justPrint, glw::default_shader_error_handler());
 
-	lbtitle.pos = glm::ivec2(0, 50);
+	lbtitle.pos = glm::vec2(0, 50);
 	lbtitle.anch = glgui::anchor::TOPMID;
 	lbtitle.align = glgui::anchor::TOPMID;
 	lbtitle.color = glm::vec3(1, 1, 1);
 	lbtitle.outline = true;
-	lbtitle.charsize = glm::ivec2(30, 60);
+	lbtitle.charsize = glm::vec2(30, 60);
 	lbtitle.setText("Multiplayer-game\nclient");
 	gui.controls.push_back(&lbtitle);
-	btnconnect.pos = glm::ivec2(0, 360);
-	btnconnect.size = glm::ivec2(400, 70);
+	tbip.pos = glm::vec2(0, 200);
+	tbip.size = glm::vec2(600, 70);
+	tbip.anch = glgui::anchor::TOPMID;
+	tbip.align = glgui::anchor::TOPMID;
+	tbip.charsize = glm::vec2(30, 60);
+	tbip.text = cfg.defaultserv.ip;
+	gui.controls.push_back(&tbip);
+	tbport.pos = glm::vec2(0, 280);
+	tbport.size = glm::vec2(600, 70);
+	tbport.anch = glgui::anchor::TOPMID;
+	tbport.align = glgui::anchor::TOPMID;
+	tbport.charsize = glm::vec2(30, 60);
+	tbport.text = cfg.defaultserv.port;
+	gui.controls.push_back(&tbport);
+	btnconnect.pos = glm::vec2(0, 360);
+	btnconnect.size = glm::vec2(600, 70);
 	btnconnect.anch = glgui::anchor::TOPMID;
 	btnconnect.align = glgui::anchor::TOPMID;
 	btnconnect.textalign = glgui::anchor::CENTER;
 	btnconnect.bgcolor = glm::vec3(.7f, 1.f, 1.f);
-	btnconnect.charsize = glm::ivec2(30, 60);
+	btnconnect.charsize = glm::vec2(30, 60);
 	btnconnect.setText("connect");
 	btnconnect.data = this;
 	btnconnect.cb = connect_cb;
 	gui.controls.push_back(&btnconnect);
-	gui.pos = glm::ivec2(0, 0);
-	gui.size = glm::ivec2(ww, wh);
+	gui.pos = glm::vec2(0, 0);
+	gui.size = glm::vec2(ww, wh);
 	gui.anch = glgui::anchor::TOPLEFT;
 	gui.align = glgui::anchor::TOPLEFT;
-	gui.focused = false;
+	gui.unfocus();
 	gui.init();
 }
 void app::update() {

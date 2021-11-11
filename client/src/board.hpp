@@ -11,7 +11,7 @@ namespace dirs {
 		DOWN,
 		LEFT
 	};
-};
+}
 
 class board {
 public:

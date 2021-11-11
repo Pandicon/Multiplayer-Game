@@ -53,18 +53,19 @@ namespace glgui {
 		glm::fvec2 size;
 		anchor::anchor_t anch;
 		anchor::anchor_t align;
-		unsigned int focused;
+		bool focused;
 		
 		inline virtual ~control() { }
 		inline virtual void init() { }
 		inline virtual void mousedown(int mb, float mx, float my) { (void)mb;(void)mx;(void)my; }
 		inline virtual void mouseup(int mb, float mx, float my) { (void)mb;(void)mx;(void)my; }
 		inline virtual void keydown(int key) { (void)key; }
-		inline virtual void keywrite(unsigned int ch) { (void)ch; }
+		inline virtual void keywrite(char ch) { (void)ch; }
 		inline virtual void keyup(int key) { (void)key; }
 		inline virtual void update(float dt) { (void)dt; }
 		virtual void render(const glm::mat4 &proj) const = 0;
 		inline virtual void resize() { }
+		inline virtual void unfocus() { focused = false; }
 	};
 	class container : public control {
 	public:
@@ -74,10 +75,11 @@ namespace glgui {
 		void mousedown(int mb, float mx, float my) override;
 		void mouseup(int mb, float mx, float my) override;
 		void keydown(int key) override;
-		void keywrite(unsigned int ch) override;
+		void keywrite(char ch) override;
 		void keyup(int key) override;
 		void update(float dt) override;
 		void render(const glm::mat4 &proj) const override;
+		void unfocus() override;
 	};
 	class label : public control {
 	public:
@@ -92,16 +94,18 @@ namespace glgui {
 	protected:
 		std::string txt;
 	};
-	using button_callback = void (*)(void *);
+	using glgui_callback = void (*)(void *);
 	class button : public control {
 	public:
 		glm::fvec2 charsize;
 		glm::vec3 bgcolor;
 		anchor::anchor_t textalign;
 		void *data;
-		button_callback cb;
+		glgui_callback cb = nullptr;
 
+		void mousedown(int mb, float mx, float my) override;
 		void mouseup(int mb, float mx, float my) override;
+		void keydown(int key) override;
 		void render(const glm::mat4 &proj) const override;
 		std::string text() const;
 		void setText(const std::string &t);
@@ -109,7 +113,20 @@ namespace glgui {
 		std::string txt;
 		glm::vec2 textsize;
 	};
-};
+	class textbox : public control {
+	public:
+		glm::fvec2 charsize;
+		unsigned int cursorpos;
+		void *data;
+		glgui_callback cb = nullptr;
+		std::string text;
+
+		void mousedown(int mb, float mx, float my) override;
+		void keydown(int key) override;
+		void keywrite(char ch) override;
+		void render(const glm::mat4 &proj) const override;
+	};
+}
 
 #endif
 
@@ -162,12 +179,33 @@ void glgui::container::mouseup(int mb, float mx, float my) {
 		}
 	}
 }
-void glgui::container::keydown(int key) { (void)key; }
-void glgui::container::keywrite(unsigned int ch) { (void)ch; }
-void glgui::container::keyup(int key) { (void)key; }
+void glgui::container::keydown(int key) {
+	for (auto *c : controls) {
+		if (c->focused) {
+			c->keydown(key);
+		}
+	}
+}
+void glgui::container::keywrite(char ch) {
+	for (auto *c : controls) {
+		if (c->focused) {
+			c->keywrite(ch);
+		}
+	}
+}
+void glgui::container::keyup(int key) {
+	for (auto *c : controls) {
+		if (c->focused) {
+			c->keyup(key);
+		}
+	}
+}
 void glgui::container::update(float dt) {
 	for (auto *c : controls) {
 		c->update(dt);
+		if (c->focused) {
+			focused = true;
+		}
 	}
 }
 void glgui::container::render(const glm::mat4 &proj) const {
@@ -177,6 +215,12 @@ void glgui::container::render(const glm::mat4 &proj) const {
 		transl += glm::vec3(c->pos, 0);
 		glm::mat4 m = glm::translate(proj, transl);
 		c->render(m);
+	}
+}
+void glgui::container::unfocus() {
+	control::unfocus();
+	for (auto *c : controls) {
+		c->unfocus();
 	}
 }
 void glgui::label::render(const glm::mat4 &proj) const {
@@ -198,9 +242,18 @@ void glgui::label::setText(const std::string &t) {
 		size = charsize * glm::fvec2(textdims(txt));
 	}
 }
-void glgui::button::mouseup(int mb, float mx, float my) {
+void glgui::button::mousedown(int mb, float mx, float my) {
 	(void)mx; (void)my;
 	if (mb == GLFW_MOUSE_BUTTON_LEFT)
+		focused = true;
+}
+void glgui::button::mouseup(int mb, float mx, float my) {
+	(void)mx; (void)my;
+	if (mb == GLFW_MOUSE_BUTTON_LEFT && cb != nullptr)
+		cb(data);
+}
+void glgui::button::keydown(int key) {
+	if ((key == GLFW_KEY_ENTER || key == GLFW_KEY_SPACE) && cb != nullptr)
 		cb(data);
 }
 void glgui::button::render(const glm::mat4 &proj) const {
@@ -225,6 +278,68 @@ std::string glgui::button::text() const { return txt; }
 void glgui::button::setText(const std::string &t) {
 	txt = t;
 	textsize = charsize * glm::fvec2(textdims(txt));
+}
+
+void glgui::textbox::mousedown(int mb, float mx, float my) {
+	(void)mb;
+	(void)my;
+	if (mb == GLFW_MOUSE_BUTTON_LEFT) {
+		focused = true;
+		cursorpos = static_cast<int>(mx / charsize.x);
+		if (cursorpos > text.size())
+			cursorpos = text.size();
+	}
+}
+void glgui::textbox::keydown(int key) {
+	switch (key) {
+	case GLFW_KEY_LEFT:
+		if (cursorpos > 0)
+			--cursorpos;
+		break;
+	case GLFW_KEY_RIGHT:
+		if (cursorpos < text.size())
+			++cursorpos;
+		break;
+	case GLFW_KEY_DELETE:
+		if (cursorpos < text.size())
+			text.erase(text.begin()+cursorpos);
+		break;
+	case GLFW_KEY_BACKSPACE:
+		if (cursorpos > 0)
+			text.erase(text.begin()+(--cursorpos));
+		break;
+	case GLFW_KEY_ENTER:
+		if (cb != nullptr)
+			cb(data);
+		break;
+	default:
+		break;
+	}
+}
+void glgui::textbox::keywrite(char ch) {
+	text.insert(cursorpos++, 1, ch);
+}
+void glgui::textbox::render(const glm::mat4 &proj) const {
+	glm::mat4 m = glm::scale(proj, glm::vec3(size, 1.f));
+	glm::mat4 m2 = glm::translate(proj, glm::vec3(0, .5f * size.y - .5f * charsize.y, 0));
+	glm::mat4 m3 = glm::translate(proj, glm::vec3(charsize.x * cursorpos, .5f * size.y - .5f * charsize.y, 0));
+	m3 = glm::scale(m3, glm::vec3(3.f, charsize.y, 1.f));
+	glgui::guish.use();
+	glgui::guish.uniformM4f("proj", m);
+	glgui::guish.uniform3f("col", 1, 1, 1);
+	glgui::guish.uniform1i("usetex", 0);
+	glgui::quad.bind();
+	glgui::quad.drawArrays(4, GL_TRIANGLE_FAN);
+	glgui::guish.uniform3f("col", 0, 0, 0);
+	if (focused) {
+		glgui::guish.uniformM4f("proj", m3);
+		glgui::quad.drawArrays(4, GL_TRIANGLE_FAN);
+	}
+	glgui::guish.uniform1i("usetex", 1);
+	glgui::guish.uniformM4f("proj", m2);
+	glw::high::rendStr(text, 0, 0,
+		charsize.x,
+		charsize.y, 0, glgui::font);
 }
 
 #endif
