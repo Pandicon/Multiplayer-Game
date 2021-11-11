@@ -12,7 +12,7 @@ def main():
 
     client.send(input("Your message:\n"))
     responseType, response = client.receive(1024)
-    print(f"[SERVER] {response}")
+    print("[SERVER] " + str(response))
 
     client.send("", 0) # disconnect
     #responseType, response = client.receive(1024)

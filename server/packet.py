@@ -40,7 +40,7 @@ class Packet:
 		else:
 			return self.data
 	def __repr__(self) -> str:
-		return f"Packet({repr(self.type)}, {repr(self.data)})"
+		return ("Packet(" + str(repr(self.type)) + str(repr(self.data)) + ")")
 
 def tileIntToBools(tileValue: int) -> list:
 	bools = []

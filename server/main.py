@@ -20,7 +20,7 @@ def main():
 	elif serverMode == "public":
 		SERVER_IP = getPublicIP()
 	else:
-		print("unknown server mode! (", serverMode, ")")
+		print("Unknown server mode! (", serverMode, ")")
 		return
 	DISCONNECT_MESSAGE = mainConfig["DISCONNECT_MESSAGE"]
 	SERVER_ADDRESS = (SERVER_IP, PORT)
@@ -31,16 +31,16 @@ def main():
 	print("[STARTING] Server is starting...")
 
 	server.listen()
-	print(f"[LISTENING] Server is listening on IP {SERVER_IP} and port {PORT}")
+	print("[LISTENING] Server is listening on IP " + str(SERVER_IP) + " and port " + str(PORT))
 
 	while True:
 		connection, address = server.accept()
 		thread = threading.Thread(target=handleClient, args=(connection, address, DISCONNECT_MESSAGE))
 		thread.start()
-		print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
+		print("[ACTIVE CONNECTIONS] " + str(threading.activeCount() - 1))
 
 def handleClient(connection: socket.socket, address, disconnect_message):
-	print(f"[NEW CONNECTION] {address} connected.")
+	print("[NEW CONNECTION] " + str(address) + " connected.")
 	
 	send(connection, board.getWalls(), 1) # walls
 
@@ -48,12 +48,12 @@ def handleClient(connection: socket.socket, address, disconnect_message):
 	while connected:
 		messageType, message = receive(connection, 1024)
 		if messageType == 0:
-			print(f"[DISCONNECT] Message to disconnect received, disconnecting {address}")
+			print("[DISCONNECT] Message to disconnect received, disconnecting " + str(address))
 			connected = False
 			#send(connection, "Disconnecting due to such request", 255)
 			break
 
-		print(f"[{address}] {message}")
+		print("[" + str(address) + "] " + str(message))
 		send(connection, "Message received", 255)
 
 	connection.close()
