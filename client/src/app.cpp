@@ -1,12 +1,52 @@
 #include "app.hpp"
 
 #include <math.h>
+#include <stdio.h>
+#include <time.h>
 #include <bitset>
 #include <chrono>
 #include <iostream>
 #include <thread>
 #include <glm/gtc/matrix_transform.hpp>
 #include "config.hpp"
+#if __has_include ("bruteforcer/bruteforcer.hpp")
+#	define BRUTEFORCER_INCLUDED
+#	include "bruteforcer/binding.hpp"
+#	include "bruteforcer/bruteforcer.hpp"
+	bool bruteforcerFoundPath = false;
+	bool bruteforcerRunning = false;
+	bruteforcer::board b;
+	bruteforcer::bfstats bstats;
+	std::thread bfthr;
+
+	void pathfound(bruteforcer::packedmove *mvs, size_t depth) {
+		bruteforcerFoundPath = true;
+		bfbinding::printpaths(mvs, depth);
+	}
+	void runBruteforcer(target trg) {
+		bruteforcerFoundPath = false;
+		bruteforcerRunning = true;
+		bruteforcer::htable.clear();
+		bfbinding::precomp(b, trg);
+		printf("| %5s | %12s | %12s | %12s | %12s | %12s | %7s | %12s |\n",
+			"depth", "nodes", "leaf", "inner", "tr", "trmax", "tr hr", "time");
+		for (size_t depth = 1; bruteforcerRunning; ++depth) {
+			auto starttm = std::chrono::high_resolution_clock::now();
+			bfbinding::search(depth, trg, b, &bruteforcerRunning, bstats, pathfound);
+			auto endtm = std::chrono::high_resolution_clock::now();
+			int64_t durus = std::chrono::duration_cast<std::chrono::microseconds>(endtm - starttm).count();
+			float durms = durus * 0.001f;
+			printf("| %5lu | %12u | %12u | %12u | %12u | %12u | %6.2f%% | %10.3fms |\n",
+				depth, bstats.nodes + bstats.leaf, bstats.leaf, bstats.nodes,
+				bstats.trhits, bstats.trmaxhits,
+				static_cast<float>(bstats.trhits + bstats.trmaxhits) /
+					static_cast<float>(bstats.nodes + bstats.trhits + bstats.trmaxhits) * 100.f,
+				durms);
+			if (bruteforcerFoundPath)
+				break;
+		}
+	}
+#endif
 
 unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 
@@ -34,15 +74,25 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 		bots[i].color = static_cast<colors::color_t>(i);
 		bots[i].pos = glm::ivec2(i, 0);
 	}
-	trg.color = colors::YELLOW;
-	trg.pos = glm::ivec2(3, 1);
+	trg.color = colors::RED;
+	trg.pos = glm::ivec2(12, 12);
 	setSun();
 	initRendering();
 	resize(ww, wh);
 
 	stg = gamestage::MENU;
+
+#ifdef BRUTEFORCER_INCLUDED
+	bruteforcer::initHashVals(time(NULL));
+#endif
 }
 app::~app() {
+#ifdef BRUTEFORCER_INCLUDED
+	if (bruteforcerRunning) {
+		bruteforcerRunning = false;
+		bfthr.join();
+	}
+#endif
 	if (cl.running) {
 		cl.send(packet(packets::C_S_DISCONNECT, nullptr, 0));
 		cl.disconnect();
@@ -95,6 +145,20 @@ void app::key(int key, int act, int mod) {
 	(void)mod;
 	if (act == GLFW_PRESS) {
 		gui.keydown(key);
+#ifdef BRUTEFORCER_INCLUDED
+		if (key == GLFW_KEY_B && stg == gamestage::IN_GAME) {
+			if (bruteforcerRunning) {
+				std::cout << "[Bruteforcer]: Stopping search" << std::endl;
+				bruteforcerRunning = false;
+				bfthr.join();
+			} else {
+				std::cout << "[Bruteforcer]: Starting search" << std::endl;
+				b.tcol = static_cast<bruteforcer::bcolors::color_t>(trg.color);
+				bfbinding::translateboard(brd, bots, b);
+				bfthr = std::thread(runBruteforcer, trg);
+			}
+		}
+#endif
 	} else if (act == GLFW_RELEASE) {
 		gui.keyup(key);
 	}
