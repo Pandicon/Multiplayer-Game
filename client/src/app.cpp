@@ -148,10 +148,9 @@ void app::recv(const packet &p) {
 		for (size_t i = 0; i < p.size(); ++i) {
 			char dat1(p.data()[i] >> 4 & 0xf);
 			char dat2(p.data()[i] & 0xf);
-			uint8_t lookup[] = { 1, 0, 3, 2 };
 			for (uint8_t j = 0; j < 4; ++j) {
-				brd.walls[x][y][lookup[j]] = dat1 & 1;
-				brd.walls[x+1][y][lookup[j]] = dat2 & 1;
+				brd.walls[x][y][j] = dat1 & 1;
+				brd.walls[x+1][y][j] = dat2 & 1;
 				dat1 >>= 1;
 				dat2 >>= 1;
 			}
@@ -604,7 +603,7 @@ void app::renderScene(const glm::mat4 &vp, glw::shader &sh) {
 				if (brd.walls[x][y][side]) {
 					glm::mat4 model = glm::mat4(1.f);
 					model = glm::translate(model, glm::vec3(x * 0.125f - 0.9375f, 0, y * 0.125f - 0.9375f));
-					model = glm::rotate(model, glm::pi<float>() * .5f * (side + 2), glm::vec3(0, 1, 0));
+					model = glm::rotate(model, glm::pi<float>() * .5f * (3-side), glm::vec3(0, 1, 0));
 					sh.uniformM4f("proj", vp * model);
 					sh.uniformM4f("model", model);
 					sh.uniform3f("col", 1, 1, 1);
