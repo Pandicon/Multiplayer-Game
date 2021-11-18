@@ -20,10 +20,19 @@ class Board():
 					quarter[n][1][1] = tileWallsStrToBool(quarter[n][1][1])
 			generatedBoard[i] = quarter
 		self.boardLayout = generatedBoard
-		return self.boardLayout
-
+		return self.getBoard()
+	
 	def getBoard(self):
-		return self.boardLayout
+		# 2D array (16x16) of empty tiles
+		w = [[[False, False, False, False] for _ in range(16)] for _ in range(16)]
+		for i, q in enumerate(self.boardLayout):
+			for t in q:
+				d = math.floor(abs(i - 1.5))
+				x = t[0][0]+((1-d)*8)
+				y = t[0][1]+(i//2*8)
+				w[x][y] = t[1][1]
+		return w
+
 	
 	def getWalls(self) -> list:
 		# 2D array (16x16) of empty tiles
