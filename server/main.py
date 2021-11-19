@@ -1,15 +1,12 @@
 import socket
 import threading
 
-from board import Board
+from boardGenerator import BoardGenerator
 from packet import Packet
 from configHandler import loadConfigData
 from utils import getPublicIP, getLocalIP
 
 def main():
-	global board
-	board = Board()
-	board.generateBoard()
 	mainConfig = loadConfigData("../config.json")
 	serverMode = mainConfig["SERVER_MODE"]
 	PORT = mainConfig["PORT"]

@@ -11,4 +11,4 @@ def AddTuples(a, b):
     for i in range(len(result)):
         result[i] += b[i]
 
-    return result
+    return tuple(result)
