@@ -2,7 +2,5 @@
     "HEADER": 64,
     "PORT": 5050,
     "SERVER_MODE": "localhost",
-    "SERVER_IP": "127.0.0.1",
-    "ENCODE_FORMAT": "utf-8",
-    "DISCONNECT_MESSAGE": "!DISCONNECT"
+    "ENCODE_FORMAT": "utf-8"
 }
