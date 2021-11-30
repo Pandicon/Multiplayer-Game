@@ -54,14 +54,15 @@ namespace glgui {
 		anchor::anchor_t anch;
 		anchor::anchor_t align;
 		bool focused;
-		
+		GLFWwindow *win;
+
 		inline virtual ~control() { }
-		inline virtual void init() { }
+		inline virtual void init(GLFWwindow *window) { win = window; }
 		inline virtual void mousedown(int mb, float mx, float my) { (void)mb;(void)mx;(void)my; }
 		inline virtual void mouseup(int mb, float mx, float my) { (void)mb;(void)mx;(void)my; }
-		inline virtual void keydown(int key) { (void)key; }
+		inline virtual void keydown(int key, int mod) { (void)key; (void)mod; }
 		inline virtual void keywrite(char ch) { (void)ch; }
-		inline virtual void keyup(int key) { (void)key; }
+		inline virtual void keyup(int key, int mod) { (void)key; (void)mod; }
 		inline virtual void update(float dt) { (void)dt; }
 		virtual void render(const glm::mat4 &proj) const = 0;
 		inline virtual void resize() { }
@@ -71,12 +72,12 @@ namespace glgui {
 	public:
 		std::vector<control *> controls;
 
-		void init() override;
+		void init(GLFWwindow *window) override;
 		void mousedown(int mb, float mx, float my) override;
 		void mouseup(int mb, float mx, float my) override;
-		void keydown(int key) override;
+		void keydown(int key, int mod) override;
 		void keywrite(char ch) override;
-		void keyup(int key) override;
+		void keyup(int key, int mod) override;
 		void update(float dt) override;
 		void render(const glm::mat4 &proj) const override;
 		void unfocus() override;
@@ -105,7 +106,7 @@ namespace glgui {
 
 		void mousedown(int mb, float mx, float my) override;
 		void mouseup(int mb, float mx, float my) override;
-		void keydown(int key) override;
+		void keydown(int key, int mod) override;
 		void render(const glm::mat4 &proj) const override;
 		std::string text() const;
 		void setText(const std::string &t);
@@ -122,7 +123,7 @@ namespace glgui {
 		std::string text;
 
 		void mousedown(int mb, float mx, float my) override;
-		void keydown(int key) override;
+		void keydown(int key, int mod) override;
 		void keywrite(char ch) override;
 		void render(const glm::mat4 &proj) const override;
 	};
@@ -153,9 +154,10 @@ glm::ivec2 textdims(const std::string &s) {
 	return glm::ivec2(w, h);
 }
 
-void glgui::container::init() {
+void glgui::container::init(GLFWwindow *window) {
+	glgui::control::init(window);
 	for (auto *c : controls)
-		c->init();
+		c->init(window);
 }
 void glgui::container::mousedown(int mb, float mx, float my) {
 	for (auto *c : controls) {
@@ -179,10 +181,10 @@ void glgui::container::mouseup(int mb, float mx, float my) {
 		}
 	}
 }
-void glgui::container::keydown(int key) {
+void glgui::container::keydown(int key, int mod) {
 	for (auto *c : controls) {
 		if (c->focused) {
-			c->keydown(key);
+			c->keydown(key, mod);
 		}
 	}
 }
@@ -193,10 +195,10 @@ void glgui::container::keywrite(char ch) {
 		}
 	}
 }
-void glgui::container::keyup(int key) {
+void glgui::container::keyup(int key, int mod) {
 	for (auto *c : controls) {
 		if (c->focused) {
-			c->keyup(key);
+			c->keyup(key, mod);
 		}
 	}
 }
@@ -252,8 +254,8 @@ void glgui::button::mouseup(int mb, float mx, float my) {
 	if (mb == GLFW_MOUSE_BUTTON_LEFT && cb != nullptr)
 		cb(data);
 }
-void glgui::button::keydown(int key) {
-	if ((key == GLFW_KEY_ENTER || key == GLFW_KEY_SPACE) && cb != nullptr)
+void glgui::button::keydown(int key, int mod) {
+	if ((key == GLFW_KEY_ENTER || key == GLFW_KEY_SPACE) && cb != nullptr && mod == 0)
 		cb(data);
 }
 void glgui::button::render(const glm::mat4 &proj) const {
@@ -290,30 +292,44 @@ void glgui::textbox::mousedown(int mb, float mx, float my) {
 			cursorpos = text.size();
 	}
 }
-void glgui::textbox::keydown(int key) {
-	switch (key) {
-	case GLFW_KEY_LEFT:
-		if (cursorpos > 0)
-			--cursorpos;
-		break;
-	case GLFW_KEY_RIGHT:
-		if (cursorpos < text.size())
-			++cursorpos;
-		break;
-	case GLFW_KEY_DELETE:
-		if (cursorpos < text.size())
-			text.erase(text.begin()+cursorpos);
-		break;
-	case GLFW_KEY_BACKSPACE:
-		if (cursorpos > 0)
-			text.erase(text.begin()+(--cursorpos));
-		break;
-	case GLFW_KEY_ENTER:
-		if (cb != nullptr)
-			cb(data);
-		break;
-	default:
-		break;
+void glgui::textbox::keydown(int key, int mod) {
+	if (mod == 0) {
+		switch (key) {
+		case GLFW_KEY_LEFT:
+			if (cursorpos > 0)
+				--cursorpos;
+			break;
+		case GLFW_KEY_RIGHT:
+			if (cursorpos < text.size())
+				++cursorpos;
+			break;
+		case GLFW_KEY_DELETE:
+			if (cursorpos < text.size())
+				text.erase(text.begin()+cursorpos);
+			break;
+		case GLFW_KEY_BACKSPACE:
+			if (cursorpos > 0)
+				text.erase(text.begin()+(--cursorpos));
+			break;
+		case GLFW_KEY_ENTER:
+			if (cb != nullptr)
+				cb(data);
+			break;
+		default:
+			break;
+		}
+	} else if (mod == GLFW_MOD_CONTROL) {
+		if (key == GLFW_KEY_C) {
+			glfwSetClipboardString(win, text.c_str()); // TODO: selection
+		} else if (key == GLFW_KEY_X) {
+			glfwSetClipboardString(win, text.c_str());
+			text.clear();
+			cursorpos = 0;
+		} else if (key == GLFW_KEY_V) {
+			std::string clipboard(glfwGetClipboardString(win));
+			text.insert(cursorpos, clipboard);
+			cursorpos += clipboard.size();
+		}
 	}
 }
 void glgui::textbox::keywrite(char ch) {

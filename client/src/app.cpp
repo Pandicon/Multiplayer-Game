@@ -144,7 +144,7 @@ void app::scroll(int x, int y) {
 void app::key(int key, int act, int mod) {
 	(void)mod;
 	if (act == GLFW_PRESS) {
-		gui.keydown(key);
+		gui.keydown(key, mod);
 #ifdef BRUTEFORCER_INCLUDED
 		if (key == GLFW_KEY_B && stg == gamestage::IN_GAME) {
 			if (bruteforcerRunning) {
@@ -160,7 +160,7 @@ void app::key(int key, int act, int mod) {
 		}
 #endif
 	} else if (act == GLFW_RELEASE) {
-		gui.keyup(key);
+		gui.keyup(key, mod);
 	}
 }
 void app::write(unsigned int c) {
@@ -250,7 +250,7 @@ void app::connect() {
 	try {
 		cl.connect(tbip.text, tbport.text);
 		stg = gamestage::IN_GAME;
-	} catch (std::system_error e) {
+	} catch (const std::system_error &e) {
 		std::cout << "[Networking]: failed connecting to " << tbip.text << ":" << tbport.text
 			<< " " << e.what() << std::endl;
 	}
@@ -485,7 +485,7 @@ void app::initGUI() {
 	gui.anch = glgui::anchor::TOPLEFT;
 	gui.align = glgui::anchor::TOPLEFT;
 	gui.unfocus();
-	gui.init();
+	gui.init(w);
 }
 void app::update() {
 	double mx, my;
