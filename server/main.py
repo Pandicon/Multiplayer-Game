@@ -22,7 +22,6 @@ def main():
 	else:
 		print("Unknown server mode! (", serverMode, ")")
 		return
-	DISCONNECT_MESSAGE = mainConfig["DISCONNECT_MESSAGE"]
 	SERVER_ADDRESS = (SERVER_IP, PORT)
 
 	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -35,11 +34,11 @@ def main():
 
 	while True:
 		connection, address = server.accept()
-		thread = threading.Thread(target=handleClient, args=(connection, address, DISCONNECT_MESSAGE))
+		thread = threading.Thread(target=handleClient, args=(connection, address))
 		thread.start()
 		print("[ACTIVE CONNECTIONS] " + str(threading.activeCount() - 1))
 
-def handleClient(connection: socket.socket, address, disconnect_message):
+def handleClient(connection: socket.socket, address):
 	print("[NEW CONNECTION] " + str(address) + " connected.")
 	
 	send(connection, board.getWalls(), 1) # walls
