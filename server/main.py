@@ -46,6 +46,7 @@ def handleClient(connection: socket.socket, address, disconnect_message):
 		messageType, message = receive(connection, 1024)
 		if messageType == 0:
 			print("[DISCONNECT] Message to disconnect received, disconnecting " + str(address))
+			print("[ACTIVE CONNECTIONS] " + str(threading.activeCount() - 1))
 			connected = False
 			#send(connection, "Disconnecting due to such request", 255)
 			break
