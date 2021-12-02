@@ -18,6 +18,8 @@
 	bruteforcer::board b;
 	bruteforcer::bfstats bstats;
 	std::thread bfthr;
+	std::mutex bfappchatmut;
+	app *bfappptr;
 
 	void pathfound(bruteforcer::packedmove *mvs, size_t depth) {
 		bruteforcerFoundPath = true;
@@ -28,20 +30,27 @@
 		bruteforcerRunning = true;
 		bruteforcer::htable.clear();
 		bfbinding::precomp(b, trg);
-		printf("| %5s | %12s | %12s | %12s | %12s | %12s | %7s | %12s |\n",
+		char row[126];
+		sprintf(row, "[Bruteforcer]: | %5s | %12s | %12s | %12s | %12s | %12s | %7s | %12s |",
 			"depth", "nodes", "leaf", "inner", "tr", "trmax", "tr hr", "time");
+		row[125] = '\0';
+		printf("%s\n", row);
+		bfappptr->writeChat(row);
 		for (size_t depth = 1; bruteforcerRunning; ++depth) {
 			auto starttm = std::chrono::high_resolution_clock::now();
 			bfbinding::search(depth, trg, b, &bruteforcerRunning, bstats, pathfound);
 			auto endtm = std::chrono::high_resolution_clock::now();
 			int64_t durus = std::chrono::duration_cast<std::chrono::microseconds>(endtm - starttm).count();
 			float durms = durus * 0.001f;
-			printf("| %5lu | %12u | %12u | %12u | %12u | %12u | %6.2f%% | %10.3fms |\n",
+			sprintf(row, "[Bruteforcer]: | %5lu | %12u | %12u | %12u | %12u | %12u | %6.2f%% | %10.3fms |\n",
 				depth, bstats.nodes + bstats.leaf, bstats.leaf, bstats.nodes,
 				bstats.trhits, bstats.trmaxhits,
 				static_cast<float>(bstats.trhits + bstats.trmaxhits) /
 					static_cast<float>(bstats.nodes + bstats.trhits + bstats.trmaxhits) * 100.f,
 				durms);
+			row[125] = '\0';
+			printf("%s\n", row);
+			bfappptr->writeChat(row);
 			if (bruteforcerFoundPath)
 				break;
 		}
@@ -84,6 +93,7 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 
 #ifdef BRUTEFORCER_INCLUDED
 	bruteforcer::initHashVals(time(NULL));
+	bfappptr = this;
 #endif
 }
 app::~app() {
@@ -126,12 +136,13 @@ void app::click(int btn, int act, int mod) {
 	double mx, my;
 	glfwGetCursorPos(w, &mx, &my);
 	float x = static_cast<float>(mx), y = static_cast<float>(my);
+	glgui::container *currgui = stg == gamestage::MENU ? &gui : &ingamegui;
 	if (act == GLFW_PRESS) {
 		if (btn == GLFW_MOUSE_BUTTON_LEFT)
-			gui.unfocus();
-		gui.mousedown(btn, x, y);
+			currgui->unfocus();
+		currgui->mousedown(btn, x, y);
 	} else if (act == GLFW_RELEASE) {
-		gui.mouseup(btn, x, y);
+		currgui->mouseup(btn, x, y);
 	}
 }
 void app::scroll(int x, int y) {
@@ -142,25 +153,11 @@ void app::scroll(int x, int y) {
 	proj = glm::perspective(fov, static_cast<float>(ww) / wh, .1f, 100.f);
 }
 void app::key(int key, int act, int mod) {
-	(void)mod;
+	glgui::container *currgui = stg == gamestage::MENU ? &gui : &ingamegui;
 	if (act == GLFW_PRESS) {
-		gui.keydown(key, mod);
-#ifdef BRUTEFORCER_INCLUDED
-		if (key == GLFW_KEY_B && stg == gamestage::IN_GAME) {
-			if (bruteforcerRunning) {
-				std::cout << "[Bruteforcer]: Stopping search" << std::endl;
-				bruteforcerRunning = false;
-				bfthr.join();
-			} else {
-				std::cout << "[Bruteforcer]: Starting search" << std::endl;
-				b.tcol = static_cast<bruteforcer::bcolors::color_t>(trg.color);
-				bfbinding::translateboard(brd, bots, b);
-				bfthr = std::thread(runBruteforcer, trg);
-			}
-		}
-#endif
+		currgui->keydown(key, mod);
 	} else if (act == GLFW_RELEASE) {
-		gui.keyup(key, mod);
+		currgui->keyup(key, mod);
 	}
 }
 void app::write(unsigned int c) {
@@ -169,7 +166,8 @@ void app::write(unsigned int c) {
 		return;
 	}
 	char cc = static_cast<char>(c);
-	gui.keywrite(cc);
+	glgui::container *currgui = stg == gamestage::MENU ? &gui : &ingamegui;
+	currgui->keywrite(cc);
 }
 void app::resize(int ww, int wh) {
 	this->ww = ww;
@@ -201,6 +199,8 @@ void app::resize(int ww, int wh) {
 	tmp2tex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
 	gui.size = glm::ivec2(ww, wh);
 	gui.resize();
+	ingamegui.size = glm::ivec2(ww, wh);
+	ingamegui.resize();
 }
 void app::recv(const packet &p) {
 	switch (p.type()) {
@@ -239,6 +239,7 @@ void app::recv(const packet &p) {
 		trg.color = static_cast<colors::color_t>(p.data()[1] & 0b111);
 		break;
 	case packets::S_C_MESSAGE:
+		writeChat(std::string(p.data(), p.size()));
 		std::cout << "[Chat]: " << std::string(p.data(), p.size()) << std::endl;
 		break;
 	default:
@@ -254,6 +255,72 @@ void app::connect() {
 		std::cout << "[Networking]: failed connecting to " << tbip.text << ":" << tbport.text
 			<< " " << e.what() << std::endl;
 	}
+}
+void app::tbgameWrite() {
+	if (tbgame.text.size() > 0) {
+		if (tbgame.text[0] == '+') { // guess marker
+			std::string numstr = tbgame.text.substr(1);
+			auto it = std::find_if(numstr.begin(), numstr.end(), [](const char &c){ return !isdigit(c); });
+			if (it == numstr.end()) {
+				unsigned char pathlen = static_cast<unsigned char>(std::stoi(numstr));
+				packet p(packets::C_S_FOUND_PATH, reinterpret_cast<char *>(&pathlen), 1);
+				cl.send(p);
+			} else {
+				writeChat(std::string("\"") + numstr + "\" is not a number!");
+				std::cout << "[ChatInput]: \"" << numstr << "\" is not a number!" << std::endl;
+			}
+		} else if (tbgame.text[0] == '!') { // command marker
+			std::string cmdstr = tbgame.text.substr(1);
+			std::stringstream cmdss(cmdstr);
+			std::string cmd;
+			cmdss >> std::ws;
+			cmdss >> cmd;
+			writeChat(std::string("Running command: ") + cmd);
+			if (cmd == "bruteforce") {
+#ifdef BRUTEFORCER_INCLUDED
+				std::string arg;
+				cmdss >> arg;
+				if (arg == "") {
+					arg = bruteforcerRunning ? "stop" : "run";
+				}
+				if (arg == "run") {
+					writeChat("[Bruteforcer]: Starting search");
+					std::cout << "[Bruteforcer]: Starting search" << std::endl;
+					b.tcol = static_cast<bruteforcer::bcolors::color_t>(trg.color);
+					bfbinding::translateboard(brd, bots, b);
+					bfthr = std::thread(runBruteforcer, trg);
+				} else if (arg == "stop") {
+					writeChat("[Bruteforcer]: Stopping search");
+					std::cout << "[Bruteforcer]: Stopping search" << std::endl;
+					bruteforcerRunning = false;
+					bfthr.join();
+				}
+#else
+			writeChat("[Bruteforcer]: Bruteforcer not included in this build.");
+			std::cout << "[Bruteforcer]: Bruteforcer not included in this build." << std::endl;
+#endif
+			}
+		} else {
+			packet p(packets::C_S_MESSAGE, tbgame.text.c_str(), tbgame.text.size() + 1);
+			cl.send(p);
+		}
+		tbgame.text = "";
+		tbgame.cursorpos = 0;
+	}
+}
+void app::writeChat(const std::string &str) {
+#ifdef BRUTEFORCER_INCLUDED
+	bfappchatmut.lock();
+#endif
+	size_t lines = std::count(lbchat.text().begin(), lbchat.text().end(), '\n') + 1;
+	if (lines >= cfg.maxChatLines) {
+		lbchat.setText(lbchat.text().substr(lbchat.text().find('\n')) + "\n" + str);
+	} else {
+		lbchat.setText(lbchat.text() + "\n" + str);
+	}
+#ifdef BRUTEFORCER_INCLUDED
+	bfappchatmut.unlock();
+#endif
 }
 
 void app::setSun() {
@@ -443,6 +510,9 @@ void app::initFramebuffers() {
 void connect_cb(void *a) {
 	((app *)a)->connect();
 }
+void tbgameWriteWrapper(void *a) {
+	((app *)a)->tbgameWrite();
+}
 
 void app::initGUI() {
 	glgui::init("./shaders", "./textures/font.png", glw::justPrint, glw::default_shader_error_handler());
@@ -486,6 +556,29 @@ void app::initGUI() {
 	gui.align = glgui::anchor::TOPLEFT;
 	gui.unfocus();
 	gui.init(w);
+	lbchat.pos = glm::vec2(10, -10);
+	lbchat.anch = glgui::anchor::BOTLEFT;
+	lbchat.align = glgui::anchor::BOTLEFT;
+	lbchat.color = glm::vec3(0, 0, 0);
+	lbchat.outline = true;
+	lbchat.charsize = glm::vec2(12, 24);
+	lbchat.setText("");
+	ingamegui.controls.push_back(&lbchat);
+	tbgame.pos = glm::vec2(-10, -10);
+	tbgame.size = glm::vec2(300, 34);
+	tbgame.anch = glgui::anchor::BOTRIGHT;
+	tbgame.align = glgui::anchor::BOTRIGHT;
+	tbgame.charsize = glm::vec2(12, 24);
+	tbgame.text = "";
+	tbgame.data = this;
+	tbgame.cb = tbgameWriteWrapper;
+	ingamegui.controls.push_back(&tbgame);
+	ingamegui.pos = glm::vec2(0, 0);
+	ingamegui.size = glm::vec2(ww, wh);
+	ingamegui.anch = glgui::anchor::TOPLEFT;
+	ingamegui.align = glgui::anchor::TOPLEFT;
+	ingamegui.unfocus();
+	ingamegui.init(w);
 }
 void app::update() {
 	double mx, my;
@@ -499,7 +592,11 @@ void app::update() {
 		if (camorient.y < -glm::pi<float>()) camorient.y += glm::pi<float>() * 2;
 	}
 	prevm = mouse;
-	gui.update(dt);
+	if (stg == gamestage::MENU) {
+		gui.update(dt);
+	} else {
+		ingamegui.update(dt);
+	}
 }
 void app::render() {
 	renderGame();
@@ -530,6 +627,8 @@ void app::render() {
 			tmptex.swap(tmp2tex);
 		}
 		gui.render(glm::ortho<float>(0, ww, wh, 0));
+	} else {
+		ingamegui.render(glm::ortho<float>(0, ww, wh, 0));
 	}
 }
 void app::renderGame() {

@@ -4,6 +4,9 @@
 	"graphics":"default",
 	"maxfps":30,
 	"exposure":1.0,
+	"chat":{
+		"maxlines":4
+	},
 	"defaultServer":{
 		"name":"localhost",
 		"ip":"127.0.0.1",

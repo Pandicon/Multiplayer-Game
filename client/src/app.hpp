@@ -34,6 +34,8 @@ public:
 	void resize(int ww, int wh);
 	void recv(const packet &p);
 	void connect();
+	void tbgameWrite();
+	void writeChat(const std::string &str);
 private:
 	float dt;
 	int ww, wh;
@@ -103,6 +105,9 @@ private:
 	glgui::textbox tbip;
 	glgui::textbox tbport;
 	glgui::button btnconnect;
+	glgui::container ingamegui;
+	glgui::label lbchat;
+	glgui::textbox tbgame;
 
 	void setSun();
 	void initRendering();

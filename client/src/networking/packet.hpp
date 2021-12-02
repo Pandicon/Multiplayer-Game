@@ -18,6 +18,8 @@ namespace packets {
 	};
 	enum c_s_pckt_t : uint8_t {
 		C_S_DISCONNECT,
+		C_S_NICKNAME,
+		C_S_FOUND_PATH,
 		// TODO: add packets
 		C_S_MESSAGE=255,
 	};

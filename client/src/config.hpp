@@ -19,6 +19,8 @@ public:
 	int sleepms;
 	float exposure;
 
+	size_t maxChatLines;
+
 	serverinfo defaultserv;
 
 	bool shadows;
@@ -41,6 +43,8 @@ public:
 		grMode = j["graphics"];
 		sleepms = 1000 / static_cast<int>(j["maxfps"]);
 		exposure = j["exposure"];
+
+		maxChatLines = j["chat"]["maxlines"];
 
 		parseServerInfo(defaultserv, j["defaultServer"]);
 

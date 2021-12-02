@@ -90,7 +90,7 @@ namespace glgui {
 		glm::vec3 color;
 
 		void render(const glm::mat4 &proj) const override;
-		std::string text() const;
+		const std::string &text() const;
 		void setText(const std::string &t);
 	protected:
 		std::string txt;
@@ -237,7 +237,7 @@ void glgui::label::render(const glm::mat4 &proj) const {
 	}
 	glw::high::rendStr(txt, 0, 0, charsize.x, charsize.y, 0, glgui::font);
 }
-std::string glgui::label::text() const { return txt; }
+const std::string &glgui::label::text() const { return txt; }
 void glgui::label::setText(const std::string &t) {
 	txt = t;
 	if (autosize) {
