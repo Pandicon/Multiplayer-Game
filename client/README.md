@@ -1,4 +1,8 @@
 This is Multiplayer-Game client.
+# How to use
+Download pre-build client in releases (will be "soon") or build it yourself (check below). Then run
+the multi-client (/client/bin/multi-client) executable, input nickname, server IP and port and
+connect to server. Enjoy! :)
 # Used libraries
 It uses multiple libraries, which are also
 needed to compile the client. Used libraries are:
@@ -41,7 +45,7 @@ include
 +--+ json.hpp
 ```
 # Compilation
-Compiling should be pretty easy once you setup libraries. Just use CMake, for example this way:
+Compiling should be pretty easy once you setup libraries (check "Used libraries"). Just use CMake, for example this way:
 ```shell
 mkdir build
 cmake .. -DCMAKE_BUILD_TYPE=Release
