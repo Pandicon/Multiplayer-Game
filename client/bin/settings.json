@@ -7,6 +7,7 @@
 	"chat":{
 		"maxlines":4
 	},
+	"defaultNickname":"Bob",
 	"defaultServer":{
 		"name":"localhost",
 		"ip":"127.0.0.1",

@@ -102,6 +102,7 @@ private:
 
 	glgui::container gui;
 	glgui::label lbtitle;
+	glgui::textbox tbnick;
 	glgui::textbox tbip;
 	glgui::textbox tbport;
 	glgui::button btnconnect;

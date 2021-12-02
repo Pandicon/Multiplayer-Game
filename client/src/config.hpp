@@ -21,6 +21,7 @@ public:
 
 	size_t maxChatLines;
 
+	std::string defaultNick;
 	serverinfo defaultserv;
 
 	bool shadows;
@@ -46,6 +47,7 @@ public:
 
 		maxChatLines = j["chat"]["maxlines"];
 
+		defaultNick = j["defaultNickname"];
 		parseServerInfo(defaultserv, j["defaultServer"]);
 
 		std::ifstream fgraphics("./configs/graphics-settings.json");

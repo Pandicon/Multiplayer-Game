@@ -250,6 +250,7 @@ void app::connect() {
 	std::cout << "[Networking]: connecting to " << tbip.text << ":" << tbport.text << std::endl;
 	try {
 		cl.connect(tbip.text, tbport.text);
+		cl.send(packet(packets::C_S_NICKNAME, tbnick.text.c_str(), tbnick.text.size()));
 		stg = gamestage::IN_GAME;
 	} catch (const std::system_error &e) {
 		std::cout << "[Networking]: failed connecting to " << tbip.text << ":" << tbport.text
@@ -272,13 +273,12 @@ void app::tbgameWrite() {
 		} else if (tbgame.text[0] == '!') { // command marker
 			std::string cmdstr = tbgame.text.substr(1);
 			std::stringstream cmdss(cmdstr);
-			std::string cmd;
+			std::string cmd, arg;
 			cmdss >> std::ws;
 			cmdss >> cmd;
 			writeChat(std::string("Running command: ") + cmd);
 			if (cmd == "bruteforce") {
 #ifdef BRUTEFORCER_INCLUDED
-				std::string arg;
 				cmdss >> arg;
 				if (arg == "") {
 					arg = bruteforcerRunning ? "stop" : "run";
@@ -299,6 +299,11 @@ void app::tbgameWrite() {
 			writeChat("[Bruteforcer]: Bruteforcer not included in this build.");
 			std::cout << "[Bruteforcer]: Bruteforcer not included in this build." << std::endl;
 #endif
+			} else if (cmd == "renick") {
+				cmdss >> arg;
+				cl.send(packet(packets::C_S_NICKNAME, arg.c_str(), arg.size()));
+			} else if (cmd == "exit") {
+				glfwSetWindowShouldClose(w, GLFW_TRUE);
 			}
 		} else {
 			packet p(packets::C_S_MESSAGE, tbgame.text.c_str(), tbgame.text.size() + 1);
@@ -525,21 +530,28 @@ void app::initGUI() {
 	lbtitle.charsize = glm::vec2(30, 60);
 	lbtitle.setText("Multiplayer-game\nclient");
 	gui.controls.push_back(&lbtitle);
-	tbip.pos = glm::vec2(0, 200);
+	tbnick.pos = glm::vec2(0, 200);
+	tbnick.size = glm::vec2(600, 70);
+	tbnick.anch = glgui::anchor::TOPMID;
+	tbnick.align = glgui::anchor::TOPMID;
+	tbnick.charsize = glm::vec2(30, 60);
+	tbnick.text = cfg.defaultNick;
+	gui.controls.push_back(&tbnick);
+	tbip.pos = glm::vec2(0, 280);
 	tbip.size = glm::vec2(600, 70);
 	tbip.anch = glgui::anchor::TOPMID;
 	tbip.align = glgui::anchor::TOPMID;
 	tbip.charsize = glm::vec2(30, 60);
 	tbip.text = cfg.defaultserv.ip;
 	gui.controls.push_back(&tbip);
-	tbport.pos = glm::vec2(0, 280);
+	tbport.pos = glm::vec2(0, 360);
 	tbport.size = glm::vec2(600, 70);
 	tbport.anch = glgui::anchor::TOPMID;
 	tbport.align = glgui::anchor::TOPMID;
 	tbport.charsize = glm::vec2(30, 60);
 	tbport.text = cfg.defaultserv.port;
 	gui.controls.push_back(&tbport);
-	btnconnect.pos = glm::vec2(0, 360);
+	btnconnect.pos = glm::vec2(0, 440);
 	btnconnect.size = glm::vec2(600, 70);
 	btnconnect.anch = glgui::anchor::TOPMID;
 	btnconnect.align = glgui::anchor::TOPMID;
