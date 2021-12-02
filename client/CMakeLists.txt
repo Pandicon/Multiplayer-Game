@@ -29,6 +29,7 @@ if(MSVC)
 	target_compile_options(multi-client PUBLIC /W4 /WX)
 else()
 	target_compile_options(multi-client PUBLIC -Wall -Wextra -Wpedantic)
+	target_link_options(multi-client PUBLIC -Wall -Wextra -Wpedantic)
 endif()
 add_custom_command(TARGET multi-client POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy
