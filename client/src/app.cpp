@@ -321,7 +321,7 @@ void app::tbgameWrite() {
 				glfwSetWindowShouldClose(w, GLFW_TRUE);
 			}
 		} else {
-			packet p(packets::C_S_MESSAGE, tbgame.text.c_str(), tbgame.text.size() + 1);
+			packet p(packets::C_S_MESSAGE, tbgame.text.c_str(), tbgame.text.size());
 			cl.send(p);
 		}
 		tbgame.text = "";

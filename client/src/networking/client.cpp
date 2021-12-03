@@ -20,7 +20,7 @@ void client::connect(const std::string &ip, const std::string &port) {
 }
 void client::send(const packet &p) {
 	asio::error_code ec;
-	asio::write(sck, asio::buffer(p.rawd(), p.size()), ec);
+	asio::write(sck, asio::buffer(p.rawd(), p.size()+1), ec);
 	if (ec) {
 		std::cout << "[Networking]: " << ec << " " << ec.message() << std::endl;
 	}
