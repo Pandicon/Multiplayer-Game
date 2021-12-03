@@ -593,6 +593,14 @@ void app::initGUI() {
 	tbgame.data = this;
 	tbgame.cb = tbgameWriteWrapper;
 	ingamegui.controls.push_back(&tbgame);
+	lbbestpath.pos = glm::vec2(0, 10);
+	lbbestpath.anch = glgui::anchor::TOPMID;
+	lbbestpath.align = glgui::anchor::TOPMID;
+	lbbestpath.color = glm::vec3(0, 0, 0);
+	lbbestpath.outline = true;
+	lbbestpath.charsize = glm::vec2(12, 24);
+	lbbestpath.setText("");
+	ingamegui.controls.push_back(&lbbestpath);
 	ingamegui.pos = glm::vec2(0, 0);
 	ingamegui.size = glm::vec2(ww, wh);
 	ingamegui.anch = glgui::anchor::TOPLEFT;
