@@ -10,7 +10,8 @@ project(Multiplayer-Game-Client)
 add_library(glad-lib ./libs/glad.c) # compile glad separately to supress pedantic warnings from it
 target_include_directories(glad-lib PUBLIC ./include/)
 
-add_executable(multi-client ./src/main.cpp ./src/app.cpp
+add_executable(multi-client ./src/main.cpp ./src/util.cpp
+	./src/app.cpp ./src/app_rendering.cpp
 	./src/mesh.cpp
 	./src/networking/client.cpp
 	./src/stbimpl.c)

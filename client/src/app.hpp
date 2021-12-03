@@ -18,6 +18,11 @@ enum class gamestage {
 	IN_GAME
 };
 
+constexpr unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+
+constexpr float CAM_DIST = 1.6f;
+constexpr float SUN_DIST = 1000;
+
 class app {
 public:
 	GLFWwindow *w;
