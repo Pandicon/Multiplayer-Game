@@ -31,27 +31,28 @@
 		bruteforcerRunning = true;
 		bruteforcer::htable.clear();
 		bfbinding::precomp(b, trg);
-		char row[126];
-		sprintf(row, "[Bruteforcer]: | %5s | %12s | %12s | %12s | %12s | %12s | %7s | %12s |",
-			"depth", "nodes", "leaf", "inner", "tr", "trmax", "tr hr", "time");
-		row[125] = '\0';
-		printf("%s\n", row);
+		char row[64];
+		sprintf(row, "[Bruteforce]: | %5s | %12s | %7s | %12s |",
+			"depth", "nodes", "tr hr", "time");
+		row[63] = '\0';
 		bfappptr->writeChat(row);
+		printf("[Bruteforcer]: | %5s | %12s | %12s | %12s | %12s | %12s | %7s | %12s |\n",
+			"depth", "nodes", "leaf", "inner", "tr", "trmax", "tr hr", "time");
 		for (size_t depth = 1; bruteforcerRunning; ++depth) {
 			auto starttm = std::chrono::high_resolution_clock::now();
 			bfbinding::search(depth, trg, b, &bruteforcerRunning, bstats, pathfound);
 			auto endtm = std::chrono::high_resolution_clock::now();
 			int64_t durus = std::chrono::duration_cast<std::chrono::microseconds>(endtm - starttm).count();
 			float durms = durus * 0.001f;
-			sprintf(row, "[Bruteforcer]: | %5lu | %12u | %12u | %12u | %12u | %12u | %6.2f%% | %10.3fms |",
-				depth, bstats.nodes + bstats.leaf, bstats.leaf, bstats.nodes,
-				bstats.trhits, bstats.trmaxhits,
-				static_cast<float>(bstats.trhits + bstats.trmaxhits) /
-					static_cast<float>(bstats.nodes + bstats.trhits + bstats.trmaxhits) * 100.f,
-				durms);
-			row[125] = '\0';
-			printf("%s\n", row);
+			uint32_t nodes = bstats.nodes + bstats.leaf;
+			float trHrPercent = static_cast<float>(bstats.trhits + bstats.trmaxhits) /
+					static_cast<float>(bstats.nodes + bstats.trhits + bstats.trmaxhits) * 100.f;
+			sprintf(row, "[Bruteforce]: | %5lu | %12u | %6.2f%% | %10.3fms |",
+				depth, nodes, trHrPercent, durms);
+			row[63] = '\0';
 			bfappptr->writeChat(row);
+			printf("[Bruteforcer]: | %5lu | %12u | %12u | %12u | %12u | %12u | %6.2f%% | %10.3fms |\n",
+				depth, nodes, bstats.leaf, bstats.nodes, bstats.trhits, bstats.trmaxhits, trHrPercent, durms);
 			if (bruteforcerFoundPath)
 				break;
 		}
