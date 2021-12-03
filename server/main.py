@@ -31,7 +31,7 @@ def main():
 	server.acceptClients()
 def clientConCallback(sck, address, id):
 	print("[NEW CONNECTION] " + str(address) + " connected with ID " + str(id) + ".")
-	print("[ACTIVE CONNECTIONS] " + str(threading.activeCount() - 1))
+	print("[ACTIVE CONNECTIONS] " + str(threading.activeCount()))
 def recvFromClient(sck, address, id):
 	send(sck, 1, board.getWalls()) # walls
 	connected = True
