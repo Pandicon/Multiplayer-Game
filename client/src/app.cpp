@@ -43,7 +43,7 @@
 			auto endtm = std::chrono::high_resolution_clock::now();
 			int64_t durus = std::chrono::duration_cast<std::chrono::microseconds>(endtm - starttm).count();
 			float durms = durus * 0.001f;
-			sprintf(row, "[Bruteforcer]: | %5lu | %12u | %12u | %12u | %12u | %12u | %6.2f%% | %10.3fms |\n",
+			sprintf(row, "[Bruteforcer]: | %5lu | %12u | %12u | %12u | %12u | %12u | %6.2f%% | %10.3fms |",
 				depth, bstats.nodes + bstats.leaf, bstats.leaf, bstats.nodes,
 				bstats.trhits, bstats.trmaxhits,
 				static_cast<float>(bstats.trhits + bstats.trmaxhits) /
