@@ -238,10 +238,29 @@ void app::recv(const packet &p) {
 		trg.pos.y = p.data()[0] & 0xf;
 		trg.color = static_cast<colors::color_t>(p.data()[1] & 0b111);
 		break;
-	case packets::S_C_MESSAGE:
-		writeChat(std::string(p.data(), p.size()));
-		std::cout << "[Chat]: " << std::string(p.data(), p.size()) << std::endl;
+	case packets::S_C_MESSAGE:{
+		std::string msg(p.data(), p.size());
+		writeChat(msg);
+		std::cout << "[Chat]: " << msg << std::endl;
 		break;
+	}
+	case packets::S_C_FOUND_PATH:{
+		size_t path = static_cast<size_t>(static_cast<unsigned char>(p.data()[0]));
+		std::string name = std::string(p.data()+1, p.size()-1);
+		std::string text("{" + name + "} found path with length " + std::to_string(path));
+		writeChat(text);
+		std::cout << "[FOUND PATH]: " << text << std::endl;
+		if (path < bestPath) {
+			path = bestPath;
+			lbbestpath.setText(std::to_string(path) + " by " + name);
+		}
+		break;
+	}
+	case packets::S_C_TIMEOUT:{
+		writeChat("Timeout!");
+		std::cout << "[TIMEOUT]: timeout!" << std::endl;
+		break;
+	}
 	default:
 		break;
 	}

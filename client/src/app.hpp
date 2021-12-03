@@ -97,6 +97,7 @@ private:
 	board brd;
 	bot bots[5];
 	target trg;
+	size_t bestPath;
 	
 	gamestage stg;
 
@@ -109,6 +110,7 @@ private:
 	glgui::container ingamegui;
 	glgui::label lbchat;
 	glgui::textbox tbgame;
+	glgui::label lbbestpath;
 
 	void setSun();
 	void initRendering();
