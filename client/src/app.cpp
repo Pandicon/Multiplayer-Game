@@ -374,7 +374,7 @@ void app::writeChat(const std::string &str) {
 #endif
 	size_t lines = std::count(lbchat.text().begin(), lbchat.text().end(), '\n') + 1;
 	if (lines >= cfg.maxChatLines) {
-		lbchat.setText(lbchat.text().substr(lbchat.text().find('\n')) + "\n" + str);
+		lbchat.setText(lbchat.text().substr(lbchat.text().find('\n') + 1) + "\n" + str);
 	} else {
 		lbchat.setText(lbchat.text() + "\n" + str);
 	}
