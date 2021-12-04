@@ -385,7 +385,8 @@ void app::writeChat(const std::string &str) {
 
 void app::setSun() {
 	float dayprogress = getDayProgress();
-	sunpos = glm::vec3(sinf(dayprogress*2.f*glm::pi<float>()), -cosf(dayprogress*2.f*glm::pi<float>()), 0.1f);
+	float sunangle = (dayprogress + 1)*2.f*glm::pi<float>();
+	sunpos = glm::vec3(cosf(sunangle), sinf(sunangle), 0.1f);
 	sunstrength = sunpos.y < 0 ? 0 : sunpos.y * 2;
 	if (sunstrength > 1)
 		sunstrength = 1;
