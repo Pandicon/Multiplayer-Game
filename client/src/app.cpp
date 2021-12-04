@@ -33,6 +33,7 @@
 		bftrailmut.lock();
 		bftrail.clear();
 		bruteforcer::board brd(bclone);
+		float y = .06f;
 		for (size_t i = 0; i < depth; ++i) {
 			uint8_t col = bruteforcer::mcol(mvs[i]);
 			uint8_t sx = bruteforcer::bpx(brd.bots[col]);
@@ -42,16 +43,16 @@
 			uint8_t ey = bruteforcer::bpy(brd.bots[col]);
 
 			bftrail.push_back(sx * .125f - 0.9375f);
-			bftrail.push_back(.0625f);
+			bftrail.push_back(y);
 			bftrail.push_back(sy * .125f - 0.9375f);
 			bftrail.push_back(colors::toRGB[col].r);
 			bftrail.push_back(colors::toRGB[col].g);
 			bftrail.push_back(colors::toRGB[col].b);
 			bftrail.push_back(0);
 			bftrail.push_back(0);
-
+			y += 0.0005f;
 			bftrail.push_back(ex * .125f - 0.9375f);
-			bftrail.push_back(.0625f);
+			bftrail.push_back(y);
 			bftrail.push_back(ey * .125f - 0.9375f);
 			bftrail.push_back(colors::toRGB[col].r);
 			bftrail.push_back(colors::toRGB[col].g);
@@ -118,7 +119,7 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 		bots[i].pos = glm::ivec2(i, 0);
 	}
 	trg.color = colors::RED;
-	trg.pos = glm::ivec2(15, 12);
+	trg.pos = glm::ivec2(12, 12);
 	setSun();
 	initRendering();
 	resize(ww, wh);
