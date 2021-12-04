@@ -57,12 +57,17 @@ private:
 	mesh wall;
 	mesh robot;
 	mesh sun;
+	bool showtrail;
+	size_t traillen;
+	glw::vao trail;
+	glw::vbo trailvbo;
 	
 	glw::shader postsh;
 	glw::shader sh3d;
 	glw::shader lightsh;
 	glw::shader blursh;
 	glw::shader trgsh;
+	glw::shader trailsh;
 
 	glw::tex2_array<2> boardtex;
 	glw::tex2_array<2> walltex;
@@ -130,6 +135,7 @@ private:
 	void tick();
 	void renderScene(const glm::mat4 &vp, glw::shader &sh);
 	void renderTarget();
+	void renderTrail();
 };
 
 #endif

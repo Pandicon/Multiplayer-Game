@@ -17,14 +17,50 @@
 	bool bruteforcerFoundPath = false;
 	bool bruteforcerRunning = false;
 	bruteforcer::board b;
+	bruteforcer::board bclone;
 	bruteforcer::bfstats bstats;
 	std::thread bfthr;
 	std::mutex bfappchatmut;
 	app *bfappptr;
+	std::mutex bftrailmut;
+	std::vector<float> bftrail;
+	bool bfmadetrail;
 
 	void pathfound(bruteforcer::packedmove *mvs, size_t depth) {
 		bruteforcerFoundPath = true;
 		bfbinding::printpaths(mvs, depth);
+		bfmadetrail = false;
+		bftrailmut.lock();
+		bftrail.clear();
+		bruteforcer::board brd(bclone);
+		for (size_t i = 0; i < depth; ++i) {
+			uint8_t col = bruteforcer::mcol(mvs[i]);
+			uint8_t sx = bruteforcer::bpx(brd.bots[col]);
+			uint8_t sy = bruteforcer::bpy(brd.bots[col]);
+			brd.play(col, bruteforcer::mdir(mvs[i]));
+			uint8_t ex = bruteforcer::bpx(brd.bots[col]);
+			uint8_t ey = bruteforcer::bpy(brd.bots[col]);
+
+			bftrail.push_back(sx * .125f - 0.9375f);
+			bftrail.push_back(.0625f);
+			bftrail.push_back(sy * .125f - 0.9375f);
+			bftrail.push_back(colors::toRGB[col].r);
+			bftrail.push_back(colors::toRGB[col].g);
+			bftrail.push_back(colors::toRGB[col].b);
+			bftrail.push_back(0);
+			bftrail.push_back(0);
+
+			bftrail.push_back(ex * .125f - 0.9375f);
+			bftrail.push_back(.0625f);
+			bftrail.push_back(ey * .125f - 0.9375f);
+			bftrail.push_back(colors::toRGB[col].r);
+			bftrail.push_back(colors::toRGB[col].g);
+			bftrail.push_back(colors::toRGB[col].b);
+			bftrail.push_back(0);
+			bftrail.push_back(0);
+		}
+		bfmadetrail = true;
+		bftrailmut.unlock();
 	}
 	void runBruteforcer(target trg) {
 		bruteforcerFoundPath = false;
@@ -63,7 +99,7 @@ void onRecv(packet &p, void *data) {
 	((app *)data)->recv(p);
 }
 
-app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), camorient(1, 0) {
+app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), showtrail(false), camorient(1, 0) {
 	w = glfwCreateWindow(ww, wh, title, NULL, NULL);
 	glfwMakeContextCurrent(w);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -81,7 +117,7 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 		bots[i].pos = glm::ivec2(i, 0);
 	}
 	trg.color = colors::RED;
-	trg.pos = glm::ivec2(12, 12);
+	trg.pos = glm::ivec2(15, 12);
 	setSun();
 	initRendering();
 	resize(ww, wh);
@@ -292,7 +328,6 @@ void app::tbgameWrite() {
 			std::string cmd, arg;
 			cmdss >> std::ws;
 			cmdss >> cmd;
-			writeChat(std::string("Running command: ") + cmd);
 			if (cmd == "bruteforce") {
 #ifdef BRUTEFORCER_INCLUDED
 				cmdss >> arg;
@@ -312,14 +347,16 @@ void app::tbgameWrite() {
 					bfthr.join();
 				}
 #else
-			writeChat("[Bruteforcer]: Bruteforcer not included in this build.");
-			std::cout << "[Bruteforcer]: Bruteforcer not included in this build." << std::endl;
+				writeChat("[Bruteforcer]: Bruteforcer not included in this build.");
+				std::cout << "[Bruteforcer]: Bruteforcer not included in this build." << std::endl;
 #endif
 			} else if (cmd == "renick") {
 				cmdss >> arg;
 				cl.send(packet(packets::C_S_NICKNAME, arg.c_str(), arg.size()));
 			} else if (cmd == "exit") {
 				glfwSetWindowShouldClose(w, GLFW_TRUE);
+			} else {
+				writeChat(std::string("Unknown command: \"") + cmd + "\"");
 			}
 		} else {
 			packet p(packets::C_S_MESSAGE, tbgame.text.c_str(), tbgame.text.size());
@@ -402,6 +439,7 @@ void app::initShaders() {
 	blursh.use();
 	blursh.uniform1i("tex", 0);
 	glw::compileShaderFromFile(trgsh, "./shaders/trg", glw::default_shader_error_handler());
+	glw::compileShaderFromFile(trailsh, "./shaders/trail", glw::default_shader_error_handler());
 }
 void app::initTextures() {
 	boardtex.gen();
@@ -625,6 +663,21 @@ void app::update() {
 	} else {
 		ingamegui.update(dt);
 	}
+#ifdef BRUTEFORCER_INCLUDED
+	if (bfmadetrail) {
+		bftrailmut.lock();
+		if (showtrail) {
+			trailvbo.del();
+			trail.del();
+		}
+		glw::initVaoVbo(trail, trailvbo, bftrail.data(), bftrail.size() * sizeof(float),
+			sizeof(float) * 8, {glw::vap(3),glw::vap(3,sizeof(float)*3),glw::vap(2,sizeof(float)*6)});
+		traillen = bftrail.size() / 8;
+		showtrail = true;
+		bfmadetrail = false;
+		bftrailmut.unlock();
+	}
+#endif
 }
 void app::tick() {
 	update();

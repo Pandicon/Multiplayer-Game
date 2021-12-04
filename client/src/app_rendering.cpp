@@ -66,6 +66,11 @@ void app::renderGame() {
 		lightsh.uniformM4f("proj", sproj * trgmodel);
 		lightsh.uniformM4f("model", trgmodel);
 		renderTarget();
+		if (showtrail) {
+			lightsh.uniformM4f("proj", sproj);
+			lightsh.uniformM4f("model", glm::mat4(1.f));
+			renderTrail();
+		}
 		if (lamp) {
 			lampfbo.bind();
 			glClear(GL_DEPTH_BUFFER_BIT);
@@ -74,6 +79,11 @@ void app::renderGame() {
 			lightsh.uniformM4f("proj", lproj * trgmodel);
 			lightsh.uniformM4f("model", trgmodel);
 			renderTarget();
+			if (showtrail) {
+				lightsh.uniformM4f("proj", lproj);
+				lightsh.uniformM4f("model", glm::mat4(1.f));
+				renderTrail();
+			}
 		}
 	}
 	// scene
@@ -104,7 +114,7 @@ void app::renderGame() {
 	glEnable(GL_DEPTH_TEST);
 	sh3d.use();
 	sh3d.uniform3f("suncol", sunstrength, sunstrength, sunstrength);
-	sh3d.uniform3f("lampcol", 1, 1, .6f);
+	sh3d.uniform3f("lampcol", .8f, .8f, .6f);
 	sh3d.uniform3f("sunpos", sunpos);
 	sh3d.uniform3f("lamppos", lamppos);
 	sh3d.uniform1i("lampon", lamp);
@@ -120,6 +130,12 @@ void app::renderGame() {
 	trgsh.uniformM4f("model", trgmodel);
 	trgsh.uniform3f("col", colors::toRGB[trg.color]);
 	renderTarget();
+	if (showtrail) {
+		trailsh.use();
+		trailsh.uniformM4f("proj", vp);
+		trailsh.uniformM4f("model", glm::mat4(1.f));
+		renderTrail();
+	}
 	if (cfg.antialias) {
 		postfbomscolor0.bind(GL_READ_FRAMEBUFFER);
 		postfbocolor0.bind(GL_DRAW_FRAMEBUFFER);
@@ -195,4 +211,10 @@ void app::renderTarget() {
 	robot.vao.bind();
 	robot.draw();
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+void app::renderTrail() {
+	glLineWidth(3);
+	trail.bind();
+	trail.drawArrays(traillen, GL_LINES);
+	glLineWidth(1);
 }
