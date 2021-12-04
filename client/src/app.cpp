@@ -63,6 +63,7 @@
 		bftrailmut.unlock();
 	}
 	void runBruteforcer(target trg) {
+		bclone = b;
 		bruteforcerFoundPath = false;
 		bruteforcerRunning = true;
 		bruteforcer::htable.clear();
