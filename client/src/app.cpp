@@ -3,9 +3,11 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
+#include <algorithm>
 #include <bitset>
 #include <chrono>
 #include <iostream>
+#include <iterator>
 #include <thread>
 #include <glm/gtc/matrix_transform.hpp>
 #include "config.hpp"
@@ -25,49 +27,50 @@
 	std::mutex bftrailmut;
 	std::vector<float> bftrail;
 	bool bfmadetrail;
+	bool bfautoSendPath = false;
+	size_t bfPathLen = 0, bfcurrPath = 0;
+	std::vector<std::vector<bruteforcer::packedmove>> bfpaths;
+	size_t bfshownPath;
 
 	void pathfound(bruteforcer::packedmove *mvs, size_t depth) {
 		bruteforcerFoundPath = true;
 		bfbinding::printpaths(mvs, depth);
 		bfmadetrail = false;
 		bftrailmut.lock();
-		bftrail.clear();
-		bruteforcer::board brd(bclone);
-		float y = .06f;
-		for (size_t i = 0; i < depth; ++i) {
-			uint8_t col = bruteforcer::mcol(mvs[i]);
-			uint8_t sx = bruteforcer::bpx(brd.bots[col]);
-			uint8_t sy = bruteforcer::bpy(brd.bots[col]);
-			brd.play(col, bruteforcer::mdir(mvs[i]));
-			uint8_t ex = bruteforcer::bpx(brd.bots[col]);
-			uint8_t ey = bruteforcer::bpy(brd.bots[col]);
-
-			bftrail.push_back(sx * .125f - 0.9375f);
-			bftrail.push_back(y);
-			bftrail.push_back(sy * .125f - 0.9375f);
-			bftrail.push_back(colors::toRGB[col].r);
-			bftrail.push_back(colors::toRGB[col].g);
-			bftrail.push_back(colors::toRGB[col].b);
-			bftrail.push_back(0);
-			bftrail.push_back(0);
-			y += 0.0005f;
-			bftrail.push_back(ex * .125f - 0.9375f);
-			bftrail.push_back(y);
-			bftrail.push_back(ey * .125f - 0.9375f);
-			bftrail.push_back(colors::toRGB[col].r);
-			bftrail.push_back(colors::toRGB[col].g);
-			bftrail.push_back(colors::toRGB[col].b);
-			bftrail.push_back(0);
-			bftrail.push_back(0);
-		}
+		bfbinding::maketrail(bftrail, bclone, mvs, depth);
 		bfmadetrail = true;
 		bftrailmut.unlock();
+		bfPathLen = depth;
+		uint8_t mcounts[32] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+								0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		uint8_t mcounts2[32] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+								 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		for (size_t i = 0; i < depth; ++i) {
+			++mcounts[mvs[i]];
+		}
+		for (const std::vector<bruteforcer::packedmove> &path : bfpaths) {
+			for (size_t i = 0; i < 32; ++i) {
+				mcounts2[i] = 0;
+			}
+			for (size_t i = 0; i < depth; ++i) {
+				++mcounts2[path[i]];
+			}
+			if (std::equal(std::begin(mcounts), std::end(mcounts), std::begin(mcounts2))) {
+				return; // is permutation
+			}
+		}
+		bfpaths.emplace_back();
+		bfpaths.back().assign(mvs, mvs + depth);
 	}
 	void runBruteforcer(target trg) {
+		bfpaths.clear();
+		bfshownPath = false;
+		bfpaths.shrink_to_fit();
 		bclone = b;
 		bruteforcerFoundPath = false;
 		bruteforcerRunning = true;
 		bruteforcer::htable.clear();
+		bruteforcer::htablemax.clear();
 		bfbinding::precomp(b, trg);
 		char row[64];
 		sprintf(row, "[Bruteforce]: | %5s | %12s | %7s | %12s |",
@@ -94,6 +97,8 @@
 			if (bruteforcerFoundPath)
 				break;
 		}
+		bfappptr->writeChat(std::string("[Bruteforcer]: found ") + std::to_string(bfpaths.size()) + " unique paths");
+		std::cout << "[Bruteforcer]: found" << bfpaths.size() << " unique paths" << std::endl;
 	}
 #endif
 
@@ -118,8 +123,8 @@ app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), 
 		bots[i].color = static_cast<colors::color_t>(i);
 		bots[i].pos = glm::ivec2(i, 0);
 	}
-	trg.color = colors::RED;
-	trg.pos = glm::ivec2(12, 12);
+	trg.color = colors::GREEN;
+	trg.pos = glm::ivec2(12, 13);
 	setSun();
 	initRendering();
 	resize(ww, wh);
@@ -272,6 +277,14 @@ void app::recv(const packet &p) {
 		trg.pos.x = p.data()[0] >> 4 & 0xf;
 		trg.pos.y = p.data()[0] & 0xf;
 		trg.color = static_cast<colors::color_t>(p.data()[1] & 0b111);
+		if (showtrail) {
+			trail.del();
+			trailvbo.del();
+			showtrail = false;
+		}
+#ifdef BRUTEFORCER_INCLUDED
+		bfcurrPath = 0;
+#endif
 		break;
 	case packets::S_C_MESSAGE:{
 		std::string msg(p.data(), p.size());
@@ -330,7 +343,7 @@ void app::tbgameWrite() {
 			std::string cmd, arg;
 			cmdss >> std::ws;
 			cmdss >> cmd;
-			if (cmd == "bruteforce") {
+			if (cmd == "bruteforce" || cmd == "bf") {
 #ifdef BRUTEFORCER_INCLUDED
 				cmdss >> arg;
 				if (arg == "") {
@@ -347,6 +360,31 @@ void app::tbgameWrite() {
 					std::cout << "[Bruteforcer]: Stopping search" << std::endl;
 					bruteforcerRunning = false;
 					bfthr.join();
+				} else if (arg == "autosend") {
+					bfautoSendPath = true;
+				} else if (arg == "autosendstop") {
+					bfautoSendPath = false;
+				} else if (arg == "prevpath" || arg == "p") {
+					bfmadetrail = false;
+					bftrailmut.lock();
+					if (bfshownPath > 0) {
+						--bfshownPath;
+					}
+					bfbinding::maketrail(bftrail, bclone, bfpaths[bfshownPath].data(), bfpaths[bfshownPath].size());
+					bfmadetrail = true;
+					bftrailmut.unlock();
+				} else if (arg == "nextpath" || arg == "n") {
+					bfmadetrail = false;
+					bftrailmut.lock();
+					if (bfshownPath < bfpaths.size() - 1) {
+						++bfshownPath;
+					}
+					bfbinding::maketrail(bftrail, bclone, bfpaths[bfshownPath].data(), bfpaths[bfshownPath].size());
+					bfmadetrail = true;
+					bftrailmut.unlock();
+				} else if (arg == "pathcount" || arg == "pathc") {
+					writeChat(std::string("[Bruteforcer]: found ") + std::to_string(bfpaths.size()) + " paths");
+					std::cout << "[Bruteforcer]: found" << bfpaths.size() << " paths" << std::endl;
 				}
 #else
 				writeChat("[Bruteforcer]: Bruteforcer not included in this build.");
@@ -355,6 +393,34 @@ void app::tbgameWrite() {
 			} else if (cmd == "renick") {
 				cmdss >> arg;
 				cl.send(packet(packets::C_S_NICKNAME, arg.c_str(), arg.size()));
+			} else if (cmd == "clear") {
+				lbchat.setText("");
+			} else if (cmd == "deletetrail") {
+				if (showtrail) {
+					trail.del();
+					trailvbo.del();
+					showtrail = false;
+				}
+			} else if (cmd == "settrg") {
+				static std::map<std::string, colors::color_t> str2col{
+					{"red",colors::RED},
+					{"green",colors::GREEN},
+					{"blue",colors::BLUE},
+					{"yellow",colors::YELLOW},
+					{"gray",colors::GRAY},
+					{"nil",colors::GRAY},
+					{"all",colors::GRAY}
+				};
+				cmdss >> arg >> trg.pos.x >> trg.pos.y;
+				trg.color = str2col[arg];
+				if (showtrail) {
+					trail.del();
+					trailvbo.del();
+					showtrail = false;
+				}
+#ifdef BRUTEFORCER_INCLUDED
+				bfcurrPath = 0;
+#endif
 			} else if (cmd == "exit") {
 				glfwSetWindowShouldClose(w, GLFW_TRUE);
 			} else {
@@ -679,6 +745,11 @@ void app::update() {
 		showtrail = true;
 		bfmadetrail = false;
 		bftrailmut.unlock();
+	}
+	if (bfautoSendPath && bfPathLen != bfcurrPath) {
+		char l = bfPathLen;
+		cl.send(packet(packets::C_S_FOUND_PATH, &l, 1));
+		bfcurrPath = bfPathLen;
 	}
 #endif
 }
