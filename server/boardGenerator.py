@@ -23,12 +23,12 @@ class BoardGenerator():
 		return self.getBoard()
 
 	def generateBots(self):
-                configData = loadConfigData()
-                bots = configData["bots"]
-                result = {}
-                for bot in bots:
-                        result[bot] = (random.randint(0, 15), random.randint(0, 15))
-                return result
+		configData = loadConfigData()
+		bots = configData["bots"]
+		result = {}
+		for bot in bots:
+			result[bot] = (random.randint(0, 15), random.randint(0, 15))
+		return result
 
 	
 	def getBoard(self):
@@ -40,6 +40,7 @@ class BoardGenerator():
 				x = t[0][0]+((1-d)*8)
 				y = t[0][1]+(i//2*8)
 				w[(x, y)] = t[1]
+		print(w)
 		return w
 
 	
