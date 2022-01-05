@@ -1,81 +1,40 @@
-import math
-import random
-from configHandler import loadConfigData
+from nsew import *
+from boardGenerator import BoardGenerator
 
-class Board():
-	def __init__(self):
-		self.boardLayout = []
-		
-	def generateBoard(self, wallsToBool = True):
-		configData = loadConfigData()
-		gameboardTemplate = configData["gameboard"]
-		shuffledGameboardParts = gameboardTemplate
-		random.shuffle(shuffledGameboardParts)
-		generatedBoard = [[], [], [], []]
-		for i in range(len(shuffledGameboardParts)):
-			quarter = shuffledGameboardParts[i]
-			for n in range(len(quarter)):
-				quarter[n] = spinTile(quarter[n], i)
-				if wallsToBool:
-					quarter[n][1][1] = tileWallsStrToBool(quarter[n][1][1])
-			generatedBoard[i] = quarter
-		self.boardLayout = generatedBoard
-		return self.boardLayout
+class Board:
+    def __init__ (self):
+        self.generator = BoardGenerator()
+        self.tiles = self.generator.generateBoard()
+        self.placeBots()
+        self.history = [defaultCoords]
 
-	def getBoard(self):
-		return self.boardLayout
-	
-	def getWalls(self) -> list:
-		# 2D array (16x16) of empty tiles
-		w = [[[False, False, False, False] for _ in range(16)] for _ in range(16)]
-		for i, q in enumerate(self.boardLayout):
-			for t in q:
-				d = math.floor(abs(i - 1.5))
-				x = t[0][0]+((1-d)*8)
-				y = t[0][1]+(i//2*8)
-				w[x][y] = t[1][1]
-		return w
+    def placeBots(self):
+        self.botCoords = self.generator.generateBots()
+        self.defaultCoords = self.botCoords
+        for bot in self.botCoords:
+            while(not checkPlacement(bot)):
+                self.botCoords[bot] = (random.randint(0, 15), random.randint(0, 15))
 
-def spinLetters(input: str, spin: int) -> str:
-	output = ""
-	letters = ["t", "r", "b", "l"]
-	for letter in input:
-		output += letters[(letters.index(letter)+spin)%4]
-	return output
+    def checkPlacement(self, bot):
+        if(self.tiles[self.botCoords[bot]][0] != ""):
+            return False
+        for d in NSEW:
+            if(not self.tiles[move(self.botCoords[bot], d)][0].split("-", 1)[0] == bot):
+                return False
+        return True
 
-def spinCoords(input: list, spin: int) -> list:
-	max = 7
-	x = input[0]
-	y = input[1]
-	for i in range(spin%4):
-		tempX = x
-		x = max-y
-		y = tempX
-	return [x, y]
+    def moveBot(self, bot, direction):
+        botCoords[bot] = move(botCoords[bot], direction)
 
-def spinTile(input: list, spin: int) -> list:
-	coords = input[0]
-	tileInfo = input[1]
-	letters = tileInfo[1]
-	coords = spinCoords(coords, spin)
-	letters = spinLetters(letters, spin)
-	tileInfo[1] = letters
-	return [coords, tileInfo]
+    def revert(self):
+        self.history.pop(-1)
+        self.botCoords = self.history[-1]
 
-def tileWallsStrToBool(walls: str) -> list:
-	output = []
-	letters = ["t", "r", "b", "l"]
-	for i in range(len(letters)):
-		if letters[i] in walls:
-			output.append(True)
-		else:
-			output.append(False)
-	return output
-
-def tileWallsBoolToStr(walls: list) -> str:
-	output = ""
-	letters = ["t", "r", "b", "l"]
-	for i in range(len(walls)):
-		if walls[i]:
-			output += letters[i]
-	return output
+    def restart(self):
+        self.botCoords = self.defaultCoords
+        self.history = [defaultCoords]
+        
+    def move(self, coords, direction):
+        while(not(self.tiles[coords][1][NSEW.index(direction)])):
+            coords = addTuples(coords, direction)
+        return coords
