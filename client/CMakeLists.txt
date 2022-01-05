@@ -10,7 +10,8 @@ project(Multiplayer-Game-Client)
 add_library(glad-lib ./libs/glad.c) # compile glad separately to supress pedantic warnings from it
 target_include_directories(glad-lib PUBLIC ./include/)
 
-add_executable(multi-client ./src/main.cpp ./src/app.cpp
+add_executable(multi-client ./src/main.cpp ./src/util.cpp
+	./src/app.cpp ./src/app_rendering.cpp
 	./src/mesh.cpp
 	./src/networking/client.cpp
 	./src/stbimpl.c)
@@ -29,6 +30,7 @@ if(MSVC)
 	target_compile_options(multi-client PUBLIC /W4 /WX)
 else()
 	target_compile_options(multi-client PUBLIC -Wall -Wextra -Wpedantic)
+	target_link_options(multi-client PUBLIC -Wall -Wextra -Wpedantic)
 endif()
 add_custom_command(TARGET multi-client POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy

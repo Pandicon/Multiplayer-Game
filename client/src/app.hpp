@@ -18,6 +18,11 @@ enum class gamestage {
 	IN_GAME
 };
 
+constexpr unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+
+constexpr float CAM_DIST = 1.6f;
+constexpr float SUN_DIST = 1000;
+
 class app {
 public:
 	GLFWwindow *w;
@@ -34,6 +39,8 @@ public:
 	void resize(int ww, int wh);
 	void recv(const packet &p);
 	void connect();
+	void tbgameWrite();
+	void writeChat(const std::string &str);
 private:
 	float dt;
 	int ww, wh;
@@ -50,12 +57,17 @@ private:
 	mesh wall;
 	mesh robot;
 	mesh sun;
+	bool showtrail;
+	size_t traillen;
+	glw::vao trail;
+	glw::vbo trailvbo;
 	
 	glw::shader postsh;
 	glw::shader sh3d;
 	glw::shader lightsh;
 	glw::shader blursh;
 	glw::shader trgsh;
+	glw::shader trailsh;
 
 	glw::tex2_array<2> boardtex;
 	glw::tex2_array<2> walltex;
@@ -95,14 +107,20 @@ private:
 	board brd;
 	bot bots[5];
 	target trg;
+	size_t bestPath;
 	
 	gamestage stg;
 
 	glgui::container gui;
 	glgui::label lbtitle;
+	glgui::textbox tbnick;
 	glgui::textbox tbip;
 	glgui::textbox tbport;
 	glgui::button btnconnect;
+	glgui::container ingamegui;
+	glgui::label lbchat;
+	glgui::textbox tbgame;
+	glgui::label lbbestpath;
 
 	void setSun();
 	void initRendering();
@@ -117,6 +135,7 @@ private:
 	void tick();
 	void renderScene(const glm::mat4 &vp, glw::shader &sh);
 	void renderTarget();
+	void renderTrail();
 };
 
 #endif

@@ -13,12 +13,17 @@ namespace packets {
 		S_C_WALLS,
 		S_C_ROBOTS,
 		S_C_TARGET,
-		// TODO: add packets
+		S_C_FOUND_PATH=16,
+		S_C_TIMEOUT,
+		S_C_MOVE,
+		S_C_UNDO_MOVE,
+		S_C_ROBOT_RESET,
 		S_C_MESSAGE=255,
 	};
 	enum c_s_pckt_t : uint8_t {
 		C_S_DISCONNECT,
-		// TODO: add packets
+		C_S_NICKNAME,
+		C_S_FOUND_PATH,
 		C_S_MESSAGE=255,
 	};
 }

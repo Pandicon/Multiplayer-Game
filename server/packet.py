@@ -27,15 +27,18 @@ class Packet:
 		else:
 			return cls(0, b"")
 	def extract(self):
-		if self.type == 1:
-			tiles = []
-			for c in self.data:
-				tiles.extend([c // 16, c % 16])
-			tiles = [tileIntToBools(t) for t in tiles]
-			board_size = 16
-			walls = [tiles[i:i+board_size] for i in range(0, len(tiles), board_size)]
-			return walls
-		elif self.type == 255:
+		if self.type == 1: # nick
+			return self.data.decode("utf-8")
+		# do not extract server -> client packets
+		#if self.type == 1:
+		#	tiles = []
+		#	for c in self.data:
+		#		tiles.extend([c // 16, c % 16])
+		#	tiles = [tileIntToBools(t) for t in tiles]
+		#	board_size = 16
+		#	walls = [tiles[i:i+board_size] for i in range(0, len(tiles), board_size)]
+		#	return walls
+		elif self.type == 255: # chatmsg
 			return self.data.decode("utf-8")
 		else:
 			return self.data

@@ -19,6 +19,9 @@ public:
 	int sleepms;
 	float exposure;
 
+	size_t maxChatLines;
+
+	std::string defaultNick;
 	serverinfo defaultserv;
 
 	bool shadows;
@@ -42,6 +45,9 @@ public:
 		sleepms = 1000 / static_cast<int>(j["maxfps"]);
 		exposure = j["exposure"];
 
+		maxChatLines = j["chat"]["maxlines"];
+
+		defaultNick = j["defaultNickname"];
 		parseServerInfo(defaultserv, j["defaultServer"]);
 
 		std::ifstream fgraphics("./configs/graphics-settings.json");
