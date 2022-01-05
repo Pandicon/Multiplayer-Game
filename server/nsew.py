@@ -5,7 +5,7 @@ W = (0, -1)
 
 NSEW = [N,E,S,W]
 
-def AddTuples(a, b):
+def addTuples(a, b):
     result = list(a)
 
     for i in range(len(result)):
