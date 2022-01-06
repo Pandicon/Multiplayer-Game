@@ -1,8 +1,6 @@
-from board import Board
-from server import Server
+from gameServer import GameServer
 
 def main():
-        server = Server()
-
+	GameServer()
 if __name__ == "__main__":
 	main()

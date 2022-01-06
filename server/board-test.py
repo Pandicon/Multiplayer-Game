@@ -9,7 +9,7 @@ def printwalls(w):
 		for til in row:
 			print('.^]?_=J#[P"#L###'[int("".join([str(int(x)) for x in til]), 2)],end="")
 		print()
-
+"""
 tst("spinLetters('tr', 1)", "rb")
 tst("spinLetters('tr', 2)", "bl")
 tst("spinLetters('tr', 3)", "lt")
@@ -26,12 +26,11 @@ tst("spinCoords([0, 0], 4)", [0, 0])
 tst("spinCoords([1, 3], 0)", [1, 3])
 tst("spinCoords([1, 3], 1)", [4, 1])
 tst("spinCoords([1, 3], 2)", [6, 4])
-tst("spinCoords([1, 3], 3)", [3, 6])
+tst("spinCoords([1, 3], 3)", [3, 6])"""
 
 print("-----------")
 b = Board()
-b.generateBoard()
-printwalls(b.getWalls())
+printwalls(b.generator.getWalls())
 print("-----------")
 p = packet.Packet(1, b.getWalls())
 p2 = packet.Packet.unpack(p.pack())

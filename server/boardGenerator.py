@@ -1,6 +1,7 @@
 import math
 import random
 from configHandler import loadConfigData
+import bots
 
 class BoardGenerator():
 	def __init__(self):
@@ -8,7 +9,7 @@ class BoardGenerator():
 		self.configData = loadConfigData()
 		
 	def generateBoard(self, wallsToBool = True):
-		gameboardTemplate = configData["gameboard"]
+		gameboardTemplate = self.configData["gameboard"]
 		shuffledGameboardParts = gameboardTemplate
 		random.shuffle(shuffledGameboardParts)
 		generatedBoard = [[], [], [], []]
@@ -21,17 +22,9 @@ class BoardGenerator():
 			generatedBoard[i] = quarter
 		self.boardLayout = generatedBoard
 		return self.getBoard()
-
 	def generateBots(self):
-		self.bots = configData["bots"]
-		result = {}
-		for bot in bots:
-			result[bot] = (random.randint(0, 15), random.randint(0, 15))
-		return result
-
-	
+		return [(random.randint(0, 15), random.randint(0, 15)) for _ in bots.all]
 	def getBoard(self):
-		# 2D array (16x16) of empty tiles
 		w = {}
 		for i, q in enumerate(self.boardLayout):
 			for t in q:
@@ -39,6 +32,10 @@ class BoardGenerator():
 				x = t[0][0]+((1-d)*8)
 				y = t[0][1]+(i//2*8)
 				w[(x, y)] = t[1]
+		for x in range(16):
+			for y in range(16):
+				if (x, y) not in w:
+					w[(x, y)] = ["", [False, False, False, False]]
 		return w
 
 	
