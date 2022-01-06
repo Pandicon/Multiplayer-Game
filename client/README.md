@@ -13,7 +13,7 @@ glad | https://glad.dav1d.de/#language=c&specification=gl&api=gl%3D4.0&api=gles1
 stb | https://github.com/nothings/stb | only stb_image.h (texture loading)
 glm | https://github.com/g-truc/glm | (math)
 asio | https://think-async.com/Asio/Download.html | (networking)
-nlphmann's json | https://github.com/nlohmann/json | (json parser)
+nlohmann's json | https://github.com/nlohmann/json | (json parser)
 
 If you want to compile client yourself, put header files inside include folder,
 source files (glad.c) directly into libs folder and libraries (glfw) into
