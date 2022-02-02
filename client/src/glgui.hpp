@@ -46,6 +46,13 @@ namespace glgui {
 		glw::initVaoVbo(quad, quadb, quadverts, sizeof(float)*16, sizeof(float)*4,
 			{glw::vap(2),glw::vap(2,sizeof(float)*2)}, GL_STATIC_DRAW);
 	}
+	inline void terminate() {
+		font.atlas.del();
+		guish.del();
+		guioutlsh.del();
+		quad.del();
+		quadb.del();
+	}
 
 	class control {
 	public:

@@ -147,6 +147,7 @@ app::~app() {
 		cl.send(packet(packets::C_S_DISCONNECT, nullptr, 0));
 		cl.disconnect();
 	}
+	glgui::terminate();
 }
 void app::mainloop() {
 	double prev = glfwGetTime();
