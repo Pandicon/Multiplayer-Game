@@ -19,7 +19,7 @@ float getDayProgress() {
 	constexpr int shortestDayOffset = 9;
 	constexpr float lat = 0.87266f;
 	float yearProgress = (yearDay - 1 + rawDayProgress + shortestDayOffset) / 365.f;
-	float decl = glm::cos(yearProgress) * 0.41015237421f;
+	float decl = glm::cos(yearProgress * glm::pi<float>()) * 0.41015237421f;
 	float sunrise = glm::acos(-glm::tan(lat)*glm::tan(decl)) / (2.f * glm::pi<float>());
 	float sunset = glm::acos(glm::tan(lat)*glm::tan(decl)) / (2.f * glm::pi<float>()) + .5f;
 	int sunriseMin = static_cast<int>(sunrise * 1440.f);
