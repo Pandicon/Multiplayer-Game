@@ -1,3 +1,4 @@
+import bots
 from board import Board
 import random
 import time
@@ -6,13 +7,18 @@ class Game():
 	def __init__(self, server):
 		self.board = Board()
 		self.server = server
-		#self.server.sendToAll(, 2) TODO send robot positions?
 		self.targets = []
 		for tile in self.board.tiles: # FIXME: middle squares have alse text "middle"
 			if not self.board.tiles[tile][0] == "":
 				self.targets.append(self.board.tiles[tile][0])
 		self.players = []
 		self.giveUp = False
+		self.target = None
+		self.found = []
+		self.showing = None
+	def start(self):
+		#self.server.sendToAll(, 1) TODO: send walls
+		#self.server.sendToAll(, 2) TODO: send robot positions
 		while not input() == "START":
 			pass
 		self.startTurn()
@@ -28,11 +34,12 @@ class Game():
 			time.sleep(1)
 		time.sleep(60)
 		self.showtime()
-	def wayFound(self, player, lenght):
-		self.found.append(Way(player, lenght))
+	def wayFound(self, player, length):
+		self.found.append(Way(player, length))
 		#self.server.broadcast(16, ) TODO: send found way
 	def showtime(self):
-		i = self.found.index(min(map(lambda x : x.lenght, self.found))) # FIXME: player who found the path first goes first on a tie
+		shortestpath = min(map(lambda x : x.length, self.found))
+		i = next(i for i, x in enumerate(self.found) if x.length == shortestpath) # FIXME: player who found the path first goes first on a tie
 		self.showing = self.found[i].player
 		self.found.pop(i)
 		self.server.send(self.showing.id, 32, b"")
@@ -42,7 +49,7 @@ class Game():
 		self.stop()
 	def move(self, bot, direction):
 		self.board.moveBot(bot, direction)
-		if self.board.tiles[self.board.bots[self.target.split("-", 1)[0]]][0] == self.target:# or self.board.tiles[self.board.bots[black]] == self.target: # FIXME: black robot isn't universal, but black target is; also FIXME: black is not defined?
+		if self.board.tiles[self.board.bots[self.target.split("-", 1)[0]]][0] == self.target:# or self.board.tiles[self.board.bots[bots.black]] == self.target: # FIXME: black robot isn't universal, but black target is
 			self.endTurn(self.showing)
 		#self.server.broadcast(18, ) TODO: send move
 	def revert(self):
@@ -69,6 +76,6 @@ class Player():
 		self.points = 0
 
 class Way():
-	def __init__(self, player, lenght):
+	def __init__(self, player, length):
 		self.player = player
-		self.lenght = lenght
+		self.length = length

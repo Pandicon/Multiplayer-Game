@@ -4,5 +4,5 @@ blue = 2
 yellow = 3
 black = 4
 all = [red, green, blue, yellow, black]
-def str(b):
+def botstr(b):
 	return ["red", "green", "blue", "yellow", "black"][b];
