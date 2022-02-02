@@ -24,7 +24,7 @@ class Game():
 		self.target = random.choice(self.targets)
 		self.found = []
 		self.showing = None
-		while self.found.lenght == 0:
+		while len(self.found) == 0:
 			time.sleep(1)
 		time.sleep(60)
 		self.showtime()
