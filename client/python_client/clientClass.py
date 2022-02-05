@@ -3,11 +3,10 @@ import socket
 from packet import Packet
 
 class Client():
-	def __init__(self, port, server_ip, disconnect_message, server_address) -> None:
+	def __init__(self, port, server_ip, server_address) -> None:
 		self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.port = port
 		self.server_ip = server_ip
-		self.disconnect_message = disconnect_message
 		self.server_address = server_address
 		self.client.connect(self.server_address)
 
