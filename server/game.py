@@ -16,15 +16,20 @@ class Game():
 		self.target = None
 		self.found = []
 		self.showing = None
+		self.started = False
 	def start(self):
-		#self.server.sendToAll(, 1) TODO: send walls
-		#self.server.sendToAll(, 2) TODO: send robot positions
-		while not input() == "START":
+		while input() != "START":
 			pass
+		self.server.broadcast(1, self.board.generator.getWalls())
+		self.server.broadcast(2, self.board.defaultCoords)
+		self.started = True
 		self.startTurn()
 	def newPlayer(self, name, clientID):
 		p = Player(name, clientID)
 		self.players.append(p)
+		if self.started:
+			self.server.send(clientID, 1, self.board.generator.getWalls())
+			self.server.send(clientID, 2, self.board.defaultCoords)
 		return p
 	def startTurn(self):
 		self.target = random.choice(self.targets)

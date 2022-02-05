@@ -38,9 +38,6 @@ class GameServer(Server):
 	def listenFromClient(self, sck, address, id):
 		pl = self.game.newPlayer("Player" + str(id), id)
 		plref = str(address) + pl.name
-		sleep(0.1)
-		self.send(sck, 1, self.game.board.generator.getWalls()) # send walls
-		# TODO: send bot positions
 		connected = True
 		while connected:
 			messageType, message = self.receive(sck, 1024)

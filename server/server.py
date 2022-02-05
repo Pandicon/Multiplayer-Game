@@ -39,7 +39,8 @@ class Server:
 	def send(self, client, data):
 		if type(client) == int:
 			self.clients[client][0].send(data)
-		client.send(data)
+		else:
+			client.send(data)
 	def broadcast(self, data):
 		for id, cl in self.clients.items():
 			cl[0].send(data)

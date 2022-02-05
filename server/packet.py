@@ -14,6 +14,8 @@ class Packet:
 				tiles[i] = tiles[i] * 16 + tiles[i + 1]
 				del tiles[i+1]
 			self.data = bytearray(tiles)
+		elif type(data) == list and self.type == 2:
+			self.data = bytearray([x << 4 | y for x, y in data])
 		else:
 			self.data = data
 	def pack(self) -> bytearray:
