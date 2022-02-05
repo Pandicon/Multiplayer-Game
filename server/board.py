@@ -17,6 +17,7 @@ class Board:
 		for bot in bots.all:
 			while not self.checkPlacement(bot):
 				self.botCoords[bot] = (random.randint(0, 15), random.randint(0, 15)) # NOTE: you generate bot placements on two places, propably shoul make a function for that in board generator...
+		# FIXME: bots can be on the same position
 		self.defaultCoords = self.botCoords # FIXME: you propably want to copy the list (not just reference)
 	def checkPlacement(self, bot):
 		if self.tiles[self.botCoords[bot]][0] != "":

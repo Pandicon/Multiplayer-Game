@@ -269,14 +269,14 @@ void app::recv(const packet &p) {
 	}
 	case packets::S_C_ROBOTS:
 		for (size_t i = 0; i < 5; ++i) {
-			bots[i].startpos.x = p.data()[i] >> 4 & 0xf;
-			bots[i].startpos.y = p.data()[i] & 0xf;
+			bots[i].startpos.x = p.data()[i] & 0xf;
+			bots[i].startpos.y = p.data()[i] >> 4 & 0xf;
 			bots[i].pos = bots[i].startpos;
 		}
 		break;
 	case packets::S_C_TARGET:
-		trg.pos.x = p.data()[0] >> 4 & 0xf;
-		trg.pos.y = p.data()[0] & 0xf;
+		trg.pos.x = p.data()[0] & 0xf;
+		trg.pos.y = p.data()[0] >> 4 & 0xf;
 		trg.color = static_cast<colors::color_t>(p.data()[1] & 0b111);
 		if (showtrail) {
 			trail.del();
