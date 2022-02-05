@@ -19,6 +19,9 @@ void client::connect(const std::string &ip, const std::string &port) {
 	std::cout << "[Networking]: Started listening from server!" << std::endl;
 }
 void client::send(const packet &p) {
+#ifdef DEBUG_NETWORKING
+	std::cout << "[Debug-Networking]: " << to_str<false>(p) << std::endl;
+#endif
 	asio::error_code ec;
 	asio::write(sck, asio::buffer(p.rawd(), p.size()+1), ec);
 	if (ec) {
@@ -52,6 +55,9 @@ void client::listen() {
 					std::cout << "[Networking]: " << ec << " " << ec.message() << std::endl;
 			} else {
 				packet pck(recvbuf, len);
+#ifdef DEBUG_NETWORKING
+				std::cout << "[Debug-Networking]: " << to_str<true>(pck) << std::endl;
+#endif
 				onRecv(pck, data);
 			}
 			if (running)
