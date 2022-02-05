@@ -2,8 +2,6 @@
 
 #include <iostream>
 
-char recvbuf[MAX_PACKET_LEN];
-
 void recwrap(client *c) {
 	c->rec();
 }
@@ -11,12 +9,13 @@ void recwrap(client *c) {
 client::client(recvCallback rc, void *d) : onRecv(rc), data(d), running(false),
 	sck(io_context), res(io_context) { }
 void client::connect(const std::string &ip, const std::string &port) {
+	run_iocontext = false;
 	asio::connect(sck, res.resolve(ip, port));
-	std::cout << "[Networking]: Connected to server (" << ip << " " << port << ")" << std::endl;
-	running = true;
 	recvthr = new std::thread(recwrap, this);
+	running = true;
 	listen();
-	std::cout << "[Networking]: Started listening from server!" << std::endl;
+	run_iocontext = true;
+	std::cout << "[Networking]: Connected to server (" << ip << " " << port << ")" << std::endl;
 }
 void client::send(const packet &p) {
 #ifdef DEBUG_NETWORKING
@@ -39,12 +38,18 @@ void client::disconnect() {
 	std::cout << "[Networking]: Disconnected!" << std::endl;
 }
 void client::rec() {
+	while (!run_iocontext) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(15));
+		if (!running)
+			return;
+	}
 	while (running) {
 		io_context.run();
 	}
 }
+asio::streambuf buf;
 void client::listen() {
-	sck.async_read_some(asio::buffer(recvbuf, MAX_PACKET_LEN),
+	sck.async_receive(buf.prepare(MAX_PACKET_LEN),
 		[this](asio::error_code ec, size_t len){
 			if (ec) {
 				if (ec.value() == asio::error::operation_aborted)
@@ -54,7 +59,7 @@ void client::listen() {
 				else
 					std::cout << "[Networking]: " << ec << " " << ec.message() << std::endl;
 			} else {
-				packet pck(recvbuf, len);
+				packet pck(static_cast<const char *>(buf.data().data()), len);
 #ifdef DEBUG_NETWORKING
 				std::cout << "[Debug-Networking]: " << to_str<true>(pck) << std::endl;
 #endif

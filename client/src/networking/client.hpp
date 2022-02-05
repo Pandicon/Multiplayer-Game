@@ -26,6 +26,7 @@ private:
 	asio::io_context io_context;
 	asio::ip::tcp::socket sck;
     asio::ip::tcp::resolver res;
+	bool run_iocontext;
 
 	void listen();
 };

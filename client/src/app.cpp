@@ -318,8 +318,8 @@ void app::connect() {
 	std::cout << "[Networking]: connecting to " << tbip.text << ":" << tbport.text << std::endl;
 	try {
 		cl.connect(tbip.text, tbport.text);
-		cl.send(packet(packets::C_S_NICKNAME, tbnick.text.c_str(), tbnick.text.size()));
 		stg = gamestage::IN_GAME;
+		cl.send(packet(packets::C_S_NICKNAME, tbnick.text.c_str(), tbnick.text.size()));
 	} catch (const std::system_error &e) {
 		std::cout << "[Networking]: failed connecting to " << tbip.text << ":" << tbport.text
 			<< " " << e.what() << std::endl;
