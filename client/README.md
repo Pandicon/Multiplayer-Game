@@ -2,7 +2,26 @@ This is Multiplayer-Game client.
 # How to use
 Download pre-build client in releases (will be "soon") or build it yourself (check below). Then run
 the multi-client (/client/bin/multi-client) executable, input nickname, server IP and port and
-connect to server. Enjoy! :)
+connect to server. You'll see a textbox and game board. You can write messages into the textbox,
+but you can write length of your path prefixed with '+' there. When you are showing, you can click
+onto the robots and arrows will show up, which you can use to move the robots. There are also
+commands:
+command | effect | aliases
+--- | --- | ---
+!bruteforce | starts/stops bruteforcer | !bf
+!bruteforce nextpath | shows next path | !bf n
+!bruteforce pathcount | shows path count | !bf pathc
+!bruteforce prevpath | shows previous path | !bf p
+!clear | clears chat | none
+!deletetrail | hides trail | none
+!exit | exits | none
+!giveup | gives up when showing | !gu
+!renick \<name\> | sets a new name | none
+!reset | resets bot positions | !r
+!settrg \<color\> \<x\> \<y\> | sets target | none
+!undo | takes back last move | !u
+
+Enjoy! :)
 # Used libraries
 It uses multiple libraries, which are also
 needed to compile the client. Used libraries are:
