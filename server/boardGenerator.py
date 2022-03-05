@@ -22,8 +22,10 @@ class BoardGenerator():
 			generatedBoard[i] = quarter
 		self.boardLayout = generatedBoard
 		return self.getBoard()
+	def genBotPos(self):
+		return (random.randint(0, 15), random.randint(0, 15))
 	def generateBots(self):
-		return [(random.randint(0, 15), random.randint(0, 15)) for _ in bots.all]
+		return [self.genBotPos() for _ in bots.all]
 	def getBoard(self):
 		w = {}
 		for i, q in enumerate(self.boardLayout):

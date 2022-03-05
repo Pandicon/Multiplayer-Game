@@ -106,7 +106,7 @@ void onRecv(packet &p, void *data) {
 	((app *)data)->recv(p);
 }
 
-app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), showtrail(false), camorient(1, 0) {
+app::app(int ww, int wh, const char *title) : ww(ww), wh(wh), cl(onRecv, this), showtrail(false), camorient(1, 0), showtraildatadirty(false), showing(false), selectedbot(-1) {
 	w = glfwCreateWindow(ww, wh, title, NULL, NULL);
 	glfwMakeContextCurrent(w);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -182,6 +182,27 @@ void app::click(int btn, int act, int mod) {
 		if (btn == GLFW_MOUSE_BUTTON_LEFT)
 			currgui->unfocus();
 		currgui->mousedown(btn, x, y);
+		if (btn == GLFW_MOUSE_BUTTON_LEFT) {
+			clickfbo.bind();
+			glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+			int px = static_cast<int>(x), py = wh - static_cast<int>(y) - 1;
+			if (cfg.antialias) {
+				postfboms.blitTo(clickfbo, GL_STENCIL_BUFFER_BIT, GL_NEAREST, px, py, px+1, py+1, 0, 0, 1, 1);
+			} else {
+				postfbo.blitTo(clickfbo, GL_STENCIL_BUFFER_BIT, GL_NEAREST, px, py, px+1, py+1, 0, 0, 1, 1);
+			}
+			unsigned char pixel[4];
+			clickfbo.bind();
+			glReadPixels(0, 0, 1, 1, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, pixel);
+			if (pixel[0] > 0 && pixel[0] < 6) {
+				selectedbot = pixel[0] - 1;
+			} else if (pixel[0] > 5 && pixel[0] < 10) {
+				unsigned char dat = (static_cast<unsigned char>(selectedbot) << 4) | (pixel[0] - 6);
+				cl.send(packet(packets::C_S_MOVE, reinterpret_cast<char *>(&dat), 1));
+			} else {
+				selectedbot = -1;
+			}
+		}
 	} else if (act == GLFW_RELEASE) {
 		currgui->mouseup(btn, x, y);
 	}
@@ -283,24 +304,24 @@ void app::recv(const packet &p) {
 			trailvbo.del();
 			showtrail = false;
 		}
+		showtraildatalock.lock();
+		showtraildata.clear();
+		showtraildatadirty = true;
+		showtraildatalock.unlock();
+		bestPath = 999;
+		lbbestpath.setText("");
 #ifdef BRUTEFORCER_INCLUDED
 		bfcurrPath = 0;
 #endif
 		break;
-	case packets::S_C_MESSAGE:{
-		std::string msg(p.data(), p.size());
-		writeChat(msg);
-		std::cout << "[Chat]: " << msg << std::endl;
-		break;
-	}
 	case packets::S_C_FOUND_PATH:{
 		size_t path = static_cast<size_t>(static_cast<unsigned char>(p.data()[0]));
-		std::string name = std::string(p.data()+1, p.size()-1);
+		std::string name = std::string(p.data(), p.size());
 		std::string text("{" + name + "} found path with length " + std::to_string(path));
 		writeChat(text);
 		std::cout << "[FOUND PATH]: " << text << std::endl;
 		if (path < bestPath) {
-			path = bestPath;
+			bestPath = path;
 			lbbestpath.setText(std::to_string(path) + " by " + name);
 		}
 		break;
@@ -308,6 +329,123 @@ void app::recv(const packet &p) {
 	case packets::S_C_TIMEOUT:{
 		writeChat("Timeout!");
 		std::cout << "[TIMEOUT]: timeout!" << std::endl;
+		break;
+	}
+	case packets::S_C_MOVE:{
+		float y = .0625f;
+		unsigned char col = p.data()[1];
+		unsigned char t = p.data()[0];
+		glm::ivec2 from = bots[col].pos;
+		glm::ivec2 to = glm::ivec2(t & 0xf, t >> 4);
+		bots[col].pos = to;
+		movestack.push(std::make_pair(static_cast<colors::color_t>(col), from));
+		showtraildatalock.lock();
+		showtraildata.push_back(from.x * .125f - 0.9375f);
+		showtraildata.push_back(y);
+		showtraildata.push_back(from.y * .125f - 0.9375f);
+		showtraildata.push_back(colors::toRGB[col].r);
+		showtraildata.push_back(colors::toRGB[col].g);
+		showtraildata.push_back(colors::toRGB[col].b);
+		showtraildata.push_back(0);
+		showtraildata.push_back(0);
+		y += 0.00025f;
+		showtraildata.push_back(to.x * .125f - 0.9375f);
+		showtraildata.push_back(y);
+		showtraildata.push_back(to.y * .125f - 0.9375f);
+		showtraildata.push_back(colors::toRGB[col].r);
+		showtraildata.push_back(colors::toRGB[col].g);
+		showtraildata.push_back(colors::toRGB[col].b);
+		showtraildata.push_back(0);
+		showtraildata.push_back(0);
+		showtraildatadirty = true;
+		showtraildatalock.unlock();
+		break;
+	}
+	case packets::S_C_UNDO_MOVE:{
+		bots[movestack.top().first].pos = movestack.top().second;
+		movestack.pop();
+		showtraildatalock.lock();
+		for (size_t i = 0; i < 16; ++i)
+			showtraildata.pop_back();
+		showtraildatadirty = true;
+		showtraildatalock.unlock();
+		break;
+	}
+	case packets::S_C_ROBOT_RESET:{
+		std::stack<std::pair<colors::color_t, glm::ivec2>> emptystack;
+		movestack.swap(emptystack);
+		for (uint8_t i = 0; i <= colors::GRAY; ++i) {
+			bots[i].pos = bots[i].startpos;
+		}
+		showtraildatalock.lock();
+		showtraildata.clear();
+		showtraildatadirty = true;
+		showtraildatalock.unlock();
+		break;
+	}
+	case packets::S_C_START_SHOW:{
+		std::stack<std::pair<colors::color_t, glm::ivec2>> emptystack;
+		movestack.swap(emptystack);
+		for (uint8_t i = 0; i <= colors::GRAY; ++i) {
+			bots[i].pos = bots[i].startpos;
+		}
+		showtraildatalock.lock();
+		showtraildata.clear();
+		showtraildatadirty = true;
+		showtraildatalock.unlock();
+		writeChat("You are showing!");
+		showing = true;
+		break;
+	}
+	case packets::S_C_STOP_SHOW:{
+		std::stack<std::pair<colors::color_t, glm::ivec2>> emptystack;
+		movestack.swap(emptystack);
+		for (uint8_t i = 0; i <= colors::GRAY; ++i) {
+			bots[i].pos = bots[i].startpos;
+		}
+		showtraildatalock.lock();
+		showtraildata.clear();
+		showtraildatadirty = true;
+		showtraildatalock.unlock();
+		writeChat("You aren't showing anymore!");
+		showing = false;
+		break;
+	}
+	case packets::S_C_SHOW:{
+		std::stack<std::pair<colors::color_t, glm::ivec2>> emptystack;
+		movestack.swap(emptystack);
+		for (uint8_t i = 0; i <= colors::GRAY; ++i) {
+			bots[i].pos = bots[i].startpos;
+		}
+		showtraildatalock.lock();
+		showtraildata.clear();
+		showtraildatadirty = true;
+		showtraildatalock.unlock();
+		writeChat(std::string(p.data(), p.size()) + " is showing!");
+		break;
+	}
+	case packets::S_C_POINT:{
+		std::stack<std::pair<colors::color_t, glm::ivec2>> emptystack;
+		movestack.swap(emptystack);
+		for (uint8_t i = 0; i <= colors::GRAY; ++i) {
+			bots[i].pos = bots[i].startpos;
+		}
+		showtraildatalock.lock();
+		showtraildata.clear();
+		showtraildatadirty = true;
+		showtraildatalock.unlock();
+		writeChat(std::string(p.data(), p.size()) + " got a point!");
+		break;
+	}
+	case packets::S_C_GAME_OVER:{
+		writeChat("Game over!");
+		writeChat(std::string(p.data(), p.size()) + " won!");
+		break;
+	}
+	case packets::S_C_MESSAGE:{
+		std::string msg(p.data(), p.size());
+		writeChat(msg);
+		std::cout << "[Chat]: " << msg << std::endl;
 		break;
 	}
 	default:
@@ -424,6 +562,12 @@ void app::tbgameWrite() {
 #endif
 			} else if (cmd == "exit") {
 				glfwSetWindowShouldClose(w, GLFW_TRUE);
+			} else if (cmd == "u" || cmd == "undo") {
+				cl.send(packet(packets::C_S_UNDO, nullptr, 0));
+			} else if (cmd == "r" || cmd == "reset") {
+				cl.send(packet(packets::C_S_RESET, nullptr, 0));
+			} else if (cmd == "gu" || cmd == "giveup") {
+				cl.send(packet(packets::C_S_GIVE_UP, nullptr, 0));
 			} else {
 				writeChat(std::string("Unknown command: \"") + cmd + "\"");
 			}
@@ -461,171 +605,6 @@ void app::setSun() {
 	lamp = sunpos.y < 0.1f;
 	lamppos = glm::vec3(0.f, 1.0f, 0.001f);
 	sunpos *= SUN_DIST;
-}
-void app::initRendering() {
-	glw::checkError("init precheck", glw::justPrint);
-	initModels();
-	glw::checkError("init models check", glw::justPrint);
-	initShaders();
-	glw::checkError("init shaders check", glw::justPrint);
-	initTextures();
-	glw::checkError("init textures check", glw::justPrint);
-	initFramebuffers();
-	glw::checkError("init framebuffers check", glw::justPrint);
-	initGUI();
-	glw::checkError("init gui check", glw::justPrint);
-}
-void app::initModels() {
-	float quadverts[] = {
-		-1, -1, 0, 0,
-		 1, -1, 1, 0,
-		 1,  1, 1, 1,
-		-1,  1, 0, 1,
-	};
-	unsigned int quadindices[] = {
-		0, 1, 2,
-		0, 2, 3
-	};
-	glw::initVaoVboEbo(quad, quadvbo, quadebo, quadverts, sizeof(quadverts),
-		quadindices, sizeof(quadindices), sizeof(float)*4, {glw::vap(2),glw::vap(2, sizeof(float)*2)});
-	boardmesh.load("./models/board.obj");
-	wall.load("./models/wall.obj");
-	robot.load("./models/robot.obj");
-	sun.load("./models/sun.obj");
-}
-void app::initShaders() {
-	glw::compileShaderFromFile(postsh, "./shaders/post", glw::default_shader_error_handler());
-	postsh.use();
-	postsh.uniform1i("tex", 0);
-	postsh.uniform1i("bloom", 1);
-	glw::compileShaderFromFile(sh3d, "./shaders/s3", glw::default_shader_error_handler());
-	sh3d.use();
-	sh3d.uniform1i("tex", 0);
-	sh3d.uniform1i("texspec", 1);
-	sh3d.uniform1i("sundepth", 2);
-	sh3d.uniform1i("lampdepth", 3);
-	glw::compileShaderFromFile(lightsh, "./shaders/light", glw::default_shader_error_handler());
-	glw::compileShaderFromFile(blursh, "./shaders/pass.vert", "./shaders/blur.frag", glw::default_shader_error_handler());
-	blursh.use();
-	blursh.uniform1i("tex", 0);
-	glw::compileShaderFromFile(trgsh, "./shaders/trg", glw::default_shader_error_handler());
-	glw::compileShaderFromFile(trailsh, "./shaders/trail", glw::default_shader_error_handler());
-}
-void app::initTextures() {
-	boardtex.gen();
-	boardtex[0].bind();
-	boardtex[0].setWrapFilter({GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE}, GL_LINEAR, GL_LINEAR);
-	boardtex[0].fromFile("./textures/board.png", glw::justPrint, "Could not find", GL_RGBA, GL_SRGB_ALPHA);
-	boardtex[1].bind();
-	boardtex[1].setWrapFilter({GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE}, GL_LINEAR, GL_LINEAR);
-	boardtex[1].fromFile("./textures/board_spec.png", glw::justPrint, "Could not find", GL_RGBA, GL_RGBA8);
-	walltex.gen();
-	walltex[0].bind();
-	walltex[0].setWrapFilter({GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE}, GL_LINEAR, GL_LINEAR);
-	walltex[0].fromFile("./textures/wall.png", glw::justPrint, "Could not find", GL_RGBA, GL_SRGB_ALPHA);
-	walltex[1].bind();
-	walltex[1].setWrapFilter({GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE}, GL_LINEAR, GL_LINEAR);
-	walltex[1].fromFile("./textures/wall_spec.png", glw::justPrint, "Could not find", GL_RGBA, GL_RGBA8);
-	whitetex.gen();
-	whitetex.bind();
-	whitetex.setWrapFilter({GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	whitetex.fromFile("./textures/white.png", glw::justPrint, "Could not find", GL_RGBA, GL_SRGB_ALPHA);
-	blacktex.gen();
-	blacktex.bind();
-	blacktex.setWrapFilter({GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	blacktex.fromFile("./textures/black.png", glw::justPrint, "Could not find", GL_RGBA, GL_SRGB_ALPHA);
-}
-void app::initFramebuffers() {
-	sunfbo.gen();
-	sundepth.gen();
-	sundepth.bind();
-	sundepth.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	sundepth.size = glm::ivec2(cfg.shadowSize, cfg.shadowSize);
-	sundepth.upload(NULL, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
-	sunfbo.bind();
-	sunfbo.attach(sundepth, GL_DEPTH_ATTACHMENT);
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
-	lampfbo.gen();
-	lampdepth.gen();
-	lampdepth.bind();
-	lampdepth.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	lampdepth.size = glm::ivec2(cfg.shadowSize, cfg.shadowSize);
-	lampdepth.upload(NULL, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
-	lampfbo.bind();
-	lampfbo.attach(lampdepth, GL_DEPTH_ATTACHMENT);
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
-	tmpfbo.gen();
-	tmptex.gen();
-	tmptex.bind();
-	tmptex.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	tmptex.size = glm::ivec2(ww, wh);
-	tmptex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
-	tmpfbo.bind();
-	tmpfbo.attach(tmptex, GL_COLOR_ATTACHMENT0);
-	tmp2fbo.gen();
-	tmp2tex.gen();
-	tmp2tex.bind();
-	tmp2tex.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	tmp2tex.size = glm::ivec2(ww, wh);
-	tmp2tex.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
-	tmp2fbo.bind();
-	tmp2fbo.attach(tmp2tex, GL_COLOR_ATTACHMENT0);
-	postfbo.gen();
-	posttex.gen();
-	posttex.bind();
-	posttex.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	posttex.size = glm::ivec2(ww, wh);
-	posttex.upload(NULL, GL_RGBA, GL_RGBA16F, GL_FLOAT);
-	posttexover.gen();
-	posttexover.bind();
-	posttexover.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	posttexover.size = glm::ivec2(ww, wh);
-	posttexover.upload(NULL, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE);
-	postdepth.gen();
-	postdepth.bind();
-	postdepth.setWrapFilter({GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE}, GL_NEAREST, GL_NEAREST);
-	postdepth.size = glm::ivec2(ww, wh);
-	postdepth.upload(NULL, GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8);
-	postfbo.bind();
-	postfbo.attach(posttex, GL_COLOR_ATTACHMENT0);
-	postfbo.attach(posttexover, GL_COLOR_ATTACHMENT1);
-	postfbo.attach(postdepth, GL_DEPTH_STENCIL_ATTACHMENT);
-	glDrawBuffers(2, attachments);
-	postfboms.gen();
-	posttexms.gen();
-	posttexms.bind();
-	posttexms.size = glm::ivec2(ww, wh);
-	posttexms.generate(GL_RGBA16F, cfg.antialiasSamples);
-	posttexoverms.gen();
-	posttexoverms.bind();
-	posttexoverms.size = glm::ivec2(ww, wh);
-	posttexoverms.generate(GL_RGBA8, cfg.antialiasSamples);
-	postdepthms.gen();
-	postdepthms.bind();
-	postdepthms.size = glm::ivec2(ww, wh);
-	postdepthms.generate(GL_DEPTH24_STENCIL8, cfg.antialiasSamples);
-	postfboms.bind();
-	postfboms.attach(posttexms, GL_COLOR_ATTACHMENT0);
-	postfboms.attach(posttexoverms, GL_COLOR_ATTACHMENT1);
-	postfboms.attach(postdepthms, GL_DEPTH_STENCIL_ATTACHMENT);
-	glDrawBuffers(2, attachments);
-	postfbocolor0.gen();
-	postfbocolor0.bind();
-	postfbocolor0.attach(posttex, GL_COLOR_ATTACHMENT0);
-	postfbocolor0.attach(postdepth, GL_DEPTH_STENCIL_ATTACHMENT);
-	postfbocolor1.gen();
-	postfbocolor1.bind();
-	postfbocolor1.attach(posttexover, GL_COLOR_ATTACHMENT0);
-	postfbomscolor0.gen();
-	postfbomscolor0.bind();
-	postfbomscolor0.attach(posttexms, GL_COLOR_ATTACHMENT0);
-	postfbomscolor0.attach(postdepthms, GL_DEPTH_STENCIL_ATTACHMENT);
-	postfbomscolor1.gen();
-	postfbomscolor1.bind();
-	postfbomscolor1.attach(posttexoverms, GL_COLOR_ATTACHMENT0);
-	glw::fbo::screen.bind();
 }
 
 void connect_cb(void *a) {
@@ -732,6 +711,17 @@ void app::update() {
 		gui.update(dt);
 	} else {
 		ingamegui.update(dt);
+	}
+	if (showtraildatadirty) {
+		showtraildatadirty = false;
+		if (showtrail) {
+			trailvbo.del();
+			trail.del();
+		}
+		glw::initVaoVbo(trail, trailvbo, showtraildata.data(), showtraildata.size() * sizeof(float),
+			sizeof(float) * 8, {glw::vap(3),glw::vap(3,sizeof(float)*3),glw::vap(2,sizeof(float)*6)});
+		traillen = showtraildata.size() / 8;
+		showtrail = true;
 	}
 #ifdef BRUTEFORCER_INCLUDED
 	if (bfmadetrail) {

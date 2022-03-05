@@ -1,3 +1,4 @@
+import bots
 import math
 
 class Packet:
@@ -16,6 +17,15 @@ class Packet:
 			self.data = bytearray(tiles)
 		elif type(data) == list and self.type == 2:
 			self.data = bytearray([x << 4 | y for x, y in data])
+		elif type(data) == tuple and self.type == 3:
+			pos, trg = data
+			self.data = bytearray([pos[0] << 4 | pos[1], bots.black if trg == "spiral" else bots.all_str.index(trg.split("-")[0])])
+		elif type(data) == tuple and self.type == 16:
+			pl, ln = data
+			self.data = ln.to_bytes(1, "little") + bytearray(pl, "utf-8")
+		elif type(data) == tuple and self.type == 18:
+			col, to = data
+			self.data = bytearray([to[0] << 4 | to[1]]) + col.to_bytes(1, "little")
 		else:
 			self.data = data
 	def pack(self) -> bytearray:
@@ -31,15 +41,10 @@ class Packet:
 	def extract(self):
 		if self.type == 1: # nick
 			return self.data.decode("utf-8")
-		# do not extract server -> client packets
-		#if self.type == 1:
-		#	tiles = []
-		#	for c in self.data:
-		#		tiles.extend([c // 16, c % 16])
-		#	tiles = [tileIntToBools(t) for t in tiles]
-		#	board_size = 16
-		#	walls = [tiles[i:i+board_size] for i in range(0, len(tiles), board_size)]
-		#	return walls
+		elif self.type == 2:
+			return self.data[0]
+		elif self.type == 3:
+			return (self.data[0] >> 4, self.data[0] & 0xf)
 		elif self.type == 255: # chatmsg
 			return self.data.decode("utf-8")
 		else:

@@ -21,6 +21,11 @@ namespace packets {
 		S_C_MOVE,
 		S_C_UNDO_MOVE,
 		S_C_ROBOT_RESET,
+		S_C_START_SHOW=32,
+		S_C_STOP_SHOW,
+		S_C_SHOW,
+		S_C_POINT=64,
+		S_C_GAME_OVER,
 		S_C_MESSAGE=255,
 	};
 	inline std::string s_c_to_str(const s_c_pckt_t t) {
@@ -34,6 +39,11 @@ namespace packets {
 		case S_C_MOVE: return "move";
 		case S_C_UNDO_MOVE: return "undo_move";
 		case S_C_ROBOT_RESET: return "robot_reset";
+		case S_C_START_SHOW: return "start_show";
+		case S_C_STOP_SHOW: return "stop_show";
+		case S_C_SHOW: return "show";
+		case S_C_POINT: return "point";
+		case S_C_GAME_OVER: return "game_over";
 		case S_C_MESSAGE: return "message";
 		default: return "?(" + std::to_string(t) + ")";
 		}
@@ -42,6 +52,10 @@ namespace packets {
 		C_S_DISCONNECT,
 		C_S_NICKNAME,
 		C_S_FOUND_PATH,
+		C_S_MOVE,
+		C_S_UNDO,
+		C_S_RESET,
+		C_S_GIVE_UP,
 		C_S_MESSAGE=255,
 	};
 	inline std::string c_s_to_str(const c_s_pckt_t t) {
@@ -49,6 +63,10 @@ namespace packets {
 		case C_S_DISCONNECT: return "disconnect";
 		case C_S_NICKNAME: return "nickname";
 		case C_S_FOUND_PATH: return "found_path";
+		case C_S_MOVE: return "move";
+		case C_S_UNDO: return "undo";
+		case C_S_RESET: return "reset";
+		case C_S_GIVE_UP: return "give_up";
 		case C_S_MESSAGE: return "message";
 		default: return "?(" + std::to_string(t) + ")";
 		}

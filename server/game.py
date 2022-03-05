@@ -17,66 +17,104 @@ class Game():
 		self.found = []
 		self.showing = None
 		self.started = False
+		self.pathlen = 0
+		self.roundend = False
 	def start(self):
 		while input() != "START":
 			pass
 		self.server.broadcast(1, self.board.generator.getWalls())
 		self.server.broadcast(2, self.board.defaultCoords)
 		self.started = True
-		self.startTurn()
+		while True:
+			self.startTurn()
 	def newPlayer(self, name, clientID):
 		p = Player(name, clientID)
 		self.players.append(p)
 		if self.started:
 			self.server.send(clientID, 1, self.board.generator.getWalls())
+			time.sleep(0.05) # helps to prevent packet mixing
 			self.server.send(clientID, 2, self.board.defaultCoords)
+			time.sleep(0.05)
 			targetpos = next(pos for pos, tile in self.board.tiles.items() if tile[0] == self.target)
-			self.server.send(clientID, 3, bytearray([targetpos[0] << 4 | targetpos[1], bots.all_str.index(self.target.split("-")[0])]))
+			self.server.send(clientID, 3, (targetpos, self.target))
 		return p
 	def startTurn(self):
 		self.target = random.choice(self.targets)
 		targetpos = next(pos for pos, tile in self.board.tiles.items() if tile[0] == self.target)
-		self.server.broadcast(3, bytearray([targetpos[0] << 4 | targetpos[1], bots.all_str.index(self.target.split("-")[0])]))
+		self.server.broadcast(20, b"")
+		self.server.broadcast(3, (targetpos, self.target))
+		print(self.target)
 		self.found = []
 		self.showing = None
+		self.roundend = False
 		while len(self.found) == 0:
 			time.sleep(1)
 		time.sleep(60)
+		self.server.broadcast(17, b"")
 		self.showtime()
 	def wayFound(self, player, length):
 		self.found.append(Way(player, length))
-		#self.server.broadcast(16, ) TODO: send found way
+		print(player.name + " has found a way with length " + str(length))
+		self.server.broadcast(16, (player.name, length))
 	def showtime(self):
+		if len(self.found) == 0:
+			self.endTurn(None)
+			return
 		shortestpath = min(map(lambda x : x.length, self.found))
-		i = next(i for i, x in enumerate(self.found) if x.length == shortestpath) # FIXME: player who found the path first goes first on a tie
+		i = next(i for i, x in enumerate(self.found) if x.length == shortestpath)
 		self.showing = self.found[i].player
+		self.pathlen = shortestpath
 		self.found.pop(i)
 		self.server.send(self.showing.clientID, 32, b"")
+		for pl in self.players:
+			if pl.clientID != self.showing.clientID:
+				self.server.send(pl.clientID, 34, b"")
 		j = 0
-		while j < 60 and self.giveUp == False:
-			time.sleep(1)
+		while j < 600 and not self.giveUp and not self.roundend:
+			time.sleep(0.1)
+			j += 1
+		if self.roundend:
+			return
 		self.stop()
 	def move(self, bot, direction):
 		self.board.moveBot(bot, direction)
-		if self.board.tiles[self.board.bots[self.target.split("-", 1)[0]]][0] == self.target:# or self.board.tiles[self.board.bots[bots.black]] == self.target: # FIXME: black robot isn't universal, but black target is
+		self.server.broadcast(18, (bot, self.board.botCoords[bot]))
+		relevantbots = [b for i, b in enumerate(self.board.botCoords) if i == bot and (self.target == "spiral" or self.target.startswith(bots.botstr(i)))]
+		if self.target in [self.board.tiles[b][0] for b in relevantbots] and len(self.board.history) - 1 <= self.pathlen:
 			self.endTurn(self.showing)
-		#self.server.broadcast(18, ) TODO: send move
 	def revert(self):
 		self.board.revert()
-		#self.server.broadcast(19, ) TODO: send revert
+		self.server.broadcast(19, b"")
 	def reset(self):
-		self.board.reset()
-		#self.server.broadcast(20, ) TODO: send reser
+		self.board.restart()
+		self.server.broadcast(20, b"")
 	def stop(self):
-		self.server.send(self.showing.connection, 0, 33)
+		self.board.restart()
+		self.server.send(self.showing.clientID, 33, b"")
 		self.showing = None
 		self.giveUp = False
 		self.showtime()
 	def endTurn(self, winner):
+		self.board.restart()
 		if winner is not None:
 			winner.points += 1
+			self.server.broadcast(64, winner.name)
+			self.targets.remove(self.target)
 		if len(self.targets) == 0:
-			self.__init__() # FIXME: regenerating board every time??? (the board should be same until you run out of targets)
+			mostpts = max(self.players, key=lambda pl: pl.points).points
+			winners = [pl.name for pl in self.players if pl.points == mostpts]
+			if len(winners) > 1:
+				winners[-2] = winners[-2] + " and " + winners[-1]
+				del winners[-1]
+			self.server.broadcast(65, ", ".join(winners))
+			self.board = Board()
+			self.targets = []
+			for tile in self.board.tiles:
+				if self.board.tiles[tile][0] != "" and self.board.tiles[tile][0] != "middle":
+					self.targets.append(self.board.tiles[tile][0])
+			for pl in self.players:
+				pl.points = 0
+		self.roundend = True
 
 class Player():
 	def __init__(self, name, clientID):

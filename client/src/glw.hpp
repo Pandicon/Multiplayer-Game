@@ -699,9 +699,10 @@ namespace glw {
 		inline void attach(const texture3 &t, GLenum attachment=GL_COLOR_ATTACHMENT0, int zoffset=0, GLenum target=GL_FRAMEBUFFER) { glFramebufferTexture3D(target, attachment, GL_TEXTURE_3D, t.id, 0, zoffset); }
 		inline void attach(const tex2multisample &t, GLenum attachment=GL_COLOR_ATTACHMENT0, GLenum target=GL_FRAMEBUFFER) { glFramebufferTexture2D(target, attachment, GL_TEXTURE_2D_MULTISAMPLE, t.id, 0); }
 		inline void attach(const rbo &r, GLenum attachment=GL_COLOR_ATTACHMENT0, GLenum rbotarget=GL_RENDERBUFFER, GLenum target=GL_FRAMEBUFFER) { glFramebufferRenderbuffer(target, attachment, rbotarget, r.id); }
-		inline void blit(GLbitfield mask, GLenum inter, int wr, int hr, int wd, int hd, int xr=0, int yr=0, int xd=0, int yd=0) {
-			glBlitFramebuffer(xr, yr, wr, hr, xd, yd, wd, hd, mask, inter);
-		}
+		inline void blit(GLbitfield mask, GLenum inter, int x2r, int y2r, int x2d, int y2d, int xr=0, int yr=0, int xd=0, int yd=0) { glBlitFramebuffer(xr, yr, x2r, y2r, xd, yd, x2d, y2d, mask, inter); }
+		inline void blitTo(fbo &fb, GLenum mask, GLenum filter, int w, int h) { bind(GL_READ_FRAMEBUFFER); fb.bind(GL_DRAW_FRAMEBUFFER); glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, mask, filter); }
+		inline void blitTo(fbo &fb, GLenum mask, GLenum filter, int x, int y, int x2, int y2) { bind(GL_READ_FRAMEBUFFER); fb.bind(GL_DRAW_FRAMEBUFFER); glBlitFramebuffer(x, y, x2, y2, x, y, x2, y2, mask, filter); }
+		inline void blitTo(fbo &fb, GLenum mask, GLenum filter, int x, int y, int x2, int y2, int dx, int dy, int dx2, int dy2) { bind(GL_READ_FRAMEBUFFER); fb.bind(GL_DRAW_FRAMEBUFFER); glBlitFramebuffer(x, y, x2, y2, dx, dy, dx2, dy2, mask, filter); }
 		inline void swap(fbo &o) { std::swap(id, o.id); }
 		
 		inline static bool complete(GLenum target=GL_FRAMEBUFFER) { return glCheckFramebufferStatus(target) == GL_FRAMEBUFFER_COMPLETE; }

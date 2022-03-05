@@ -1,5 +1,6 @@
 from time import sleep
 import bots
+from nsew import NSEW
 from server import Server
 from packet import Packet
 from configHandler import loadConfigData
@@ -49,30 +50,30 @@ class GameServer(Server):
 				pl.name = message
 				plref = str(address) + pl.name
 			elif messageType == 2:
-				if not self.game.showing == None:
-					self.send(sck, "Cannot be done now. Please use an official client.", 255) # TODO: I am too lazy to make checks in client, do not send message saying "please use an official client"
-					continue
-				self.game.wayFound(pl, message)
+				if self.game.showing is not None:
+					self.send(sck, 255, "Game is in the showing phase now.")
+				else:
+					self.game.wayFound(pl, message)
 			elif messageType == 3:
 				if self.game.showing == pl:
-					self.game.move() # FIXME: move needs arguments (bot and direction)
+					self.game.move(message[0], NSEW[message[1]])
 				else:
-					self.send(sck, "You are not showing right now. Please use an official client.", 255)
+					self.send(sck, 255, "You are not showing right now.")
 			elif messageType == 4:
 				if self.game.showing == pl:
 					self.game.revert()
 				else:
-					self.send(sck, "You are not showing right now. Please use an official client.", 255)
+					self.send(sck, 255, "You are not showing right now.")
 			elif messageType == 5:
 				if self.game.showing == pl:
 					self.game.reset()
 				else:
-					self.send(sck, "You are not showing right now. Please use an official client.", 255)
+					self.send(sck, 255, "You are not showing right now.")
 			elif messageType == 6:
 				if self.game.showing == pl:
-					self.game.move()
+					self.game.giveUp = True
 				else:
-					self.send(sck, "You are not showing right now. Please use an official client.", 255)
+					self.send(sck, 255, "You are not showing right now.")
 			elif messageType == 255:
 				print("[CHAT] Message from [" + plref + "]: " + message)
 				self.broadcast(255, "[" + pl.name + "] " + message)

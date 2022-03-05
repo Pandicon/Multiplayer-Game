@@ -1,6 +1,5 @@
 from nsew import *
 import bots
-import random
 from boardGenerator import BoardGenerator
 
 class Board:
@@ -16,10 +15,12 @@ class Board:
 		self.botCoords = self.generator.generateBots()
 		for bot in bots.all:
 			while not self.checkPlacement(bot):
-				self.botCoords[bot] = (random.randint(0, 15), random.randint(0, 15)) # NOTE: you generate bot placements on two places, propably shoul make a function for that in board generator...
-		# FIXME: bots can be on the same position
-		self.defaultCoords = self.botCoords # FIXME: you propably want to copy the list (not just reference)
+				self.botCoords[bot] = self.generator.genBotPos()
+		self.defaultCoords = [x for x in self.botCoords]
+		self.restart()
 	def checkPlacement(self, bot):
+		if len([x for x  in self.botCoords if self.botCoords[bot] == x]) > 1:
+			return False
 		if self.tiles[self.botCoords[bot]][0] != "":
 			return False
 		for d in NSEW:
@@ -31,15 +32,18 @@ class Board:
 		self.botCoords[bot] = self.move(self.botCoords[bot], direction)
 
 	def revert(self):
-		self.history.pop(-1)
 		self.botCoords = self.history[-1]
+		self.history.pop(-1)
 
 	def restart(self):
-		self.botCoords = self.defaultCoords
-		self.history = [self.defaultCoords]
+		self.botCoords = [x for x in self.defaultCoords]
+		self.history = [[x for x in self.defaultCoords]]
 		
-	def move(self, coords, direction):
-		# TODO: add to history
-		while not self.tiles[coords][1][NSEW.index(direction)]: # TODO: add robot collisions
+	def move(self, coords, direction, collisions=True):
+		self.history.append([x for x in self.botCoords]);
+		while not self.tiles[coords][1][NSEW.index(direction)]:
+			prev = coords
 			coords = addTuples(coords, direction)
+			if collisions and coords in self.botCoords:
+				return prev
 		return coords

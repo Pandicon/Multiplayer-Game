@@ -1,6 +1,9 @@
 #ifndef __APP_HPP__
 #define __APP_HPP__
 
+#include <map>
+#include <mutex>
+#include <stack>
 #include <vector>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -57,6 +60,7 @@ private:
 	mesh wall;
 	mesh robot;
 	mesh sun;
+	mesh arrow;
 	bool showtrail;
 	size_t traillen;
 	glw::vao trail;
@@ -94,6 +98,8 @@ private:
 	glw::tex2 sundepth;
 	glw::fbo lampfbo;
 	glw::tex2 lampdepth;
+	glw::fbo clickfbo;
+	glw::tex2 clicktex;
 
 	glm::mat4 proj;
 	glm::vec2 camorient;
@@ -108,6 +114,12 @@ private:
 	bot bots[5];
 	target trg;
 	size_t bestPath;
+	std::vector<float> showtraildata;
+	bool showtraildatadirty;
+	std::mutex showtraildatalock;
+	std::stack<std::pair<colors::color_t, glm::ivec2>> movestack;
+	bool showing;
+	int selectedbot;
 	
 	gamestage stg;
 
