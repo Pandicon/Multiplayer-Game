@@ -41,7 +41,6 @@ class Game():
 	def startTurn(self):
 		self.target = random.choice(self.targets)
 		targetpos = next(pos for pos, tile in self.board.tiles.items() if tile[0] == self.target)
-		self.server.broadcast(20, b"")
 		self.server.broadcast(3, (targetpos, self.target))
 		print(self.target)
 		self.found = []

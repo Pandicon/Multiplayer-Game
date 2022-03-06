@@ -295,7 +295,12 @@ void app::recv(const packet &p) {
 			bots[i].pos = bots[i].startpos;
 		}
 		break;
-	case packets::S_C_TARGET:
+	case packets::S_C_TARGET:{
+		std::stack<std::pair<colors::color_t, glm::ivec2>> emptystack;
+		movestack.swap(emptystack);
+		for (uint8_t i = 0; i <= colors::GRAY; ++i) {
+			bots[i].pos = bots[i].startpos;
+		}
 		trg.pos.x = p.data()[0] & 0xf;
 		trg.pos.y = p.data()[0] >> 4 & 0xf;
 		trg.color = static_cast<colors::color_t>(p.data()[1] & 0b111);
@@ -315,6 +320,7 @@ void app::recv(const packet &p) {
 		bfcurrPath = 0;
 #endif
 		break;
+	}
 	case packets::S_C_FOUND_PATH:{
 		size_t path = static_cast<size_t>(static_cast<unsigned char>(p.data()[0]));
 		std::string name = std::string(p.data(), p.size());
@@ -562,6 +568,15 @@ void app::tbgameWrite() {
 					trailvbo.del();
 					showtrail = false;
 				}
+				std::stack<std::pair<colors::color_t, glm::ivec2>> emptystack;
+				movestack.swap(emptystack);
+				for (uint8_t i = 0; i <= colors::GRAY; ++i) {
+					bots[i].pos = bots[i].startpos;
+				}
+				showtraildatalock.lock();
+				showtraildata.clear();
+				showtraildatadirty = true;
+				showtraildatalock.unlock();
 #ifdef BRUTEFORCER_INCLUDED
 				bfcurrPath = 0;
 #endif
