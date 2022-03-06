@@ -311,6 +311,7 @@ void app::recv(const packet &p) {
 		bestPath = 999;
 		lbbestpath.setText("");
 #ifdef BRUTEFORCER_INCLUDED
+		bfPathLen = 0;
 		bfcurrPath = 0;
 #endif
 		break;
@@ -329,6 +330,10 @@ void app::recv(const packet &p) {
 	case packets::S_C_TIMEOUT:{
 		writeChat("Timeout!");
 		std::cout << "[TIMEOUT]: timeout!" << std::endl;
+#ifdef BRUTEFORCER_INCLUDED
+		bfPathLen = 0;
+		bfcurrPath = 0;
+#endif
 		break;
 	}
 	case packets::S_C_MOVE:{
