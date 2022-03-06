@@ -69,8 +69,8 @@ class Game():
 		self.found.pop(i)
 		self.server.send(self.showing.clientID, 32, b"")
 		for pl in self.players:
-				self.server.send(pl.clientID, 34, b"")
 			if pl.clientID != self.showing.clientID and pl.clientID in self.server.clients:
+				self.server.send(pl.clientID, 34, self.showing.name)
 		j = 0
 		while j < 600 and not self.giveUp and not self.roundend:
 			time.sleep(0.1)
