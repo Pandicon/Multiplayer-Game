@@ -60,15 +60,18 @@ class Game():
 		if len(self.found) == 0:
 			self.endTurn(None)
 			return
-		shortestpath = min(map(lambda x : x.length, self.found))
-		i = next(i for i, x in enumerate(self.found) if x.length == shortestpath)
+		i, way = min(enumerate(self.found), key=lambda x: x[1].length)
 		self.showing = self.found[i].player
-		self.pathlen = shortestpath
+		if self.showing.clientID not in self.server.clients:
+			self.found.pop(i)
+			self.showtime()
+			return
+		self.pathlen = way.length
 		self.found.pop(i)
 		self.server.send(self.showing.clientID, 32, b"")
 		for pl in self.players:
-			if pl.clientID != self.showing.clientID:
 				self.server.send(pl.clientID, 34, b"")
+			if pl.clientID != self.showing.clientID and pl.clientID in self.server.clients:
 		j = 0
 		while j < 600 and not self.giveUp and not self.roundend:
 			time.sleep(0.1)
@@ -90,7 +93,8 @@ class Game():
 		self.server.broadcast(20, b"")
 	def stop(self):
 		self.board.restart()
-		self.server.send(self.showing.clientID, 33, b"")
+		if self.showing.clientID in self.server.clients:
+			self.server.send(self.showing.clientID, 33, b"")
 		self.showing = None
 		self.giveUp = False
 		self.showtime()
@@ -101,6 +105,7 @@ class Game():
 			self.server.broadcast(64, winner.name)
 			self.targets.remove(self.target)
 		if len(self.targets) == 0:
+			print("Game ends!")
 			mostpts = max(self.players, key=lambda pl: pl.points).points
 			winners = [pl.name for pl in self.players if pl.points == mostpts]
 			if len(winners) > 1:
