@@ -405,6 +405,7 @@ void app::recv(const packet &p) {
 		showtraildatadirty = true;
 		showtraildatalock.unlock();
 		writeChat("You are showing!");
+		lbbestpath.setText("You are showing!");
 		showing = true;
 		break;
 	}
@@ -419,6 +420,7 @@ void app::recv(const packet &p) {
 		showtraildatadirty = true;
 		showtraildatalock.unlock();
 		writeChat("You aren't showing anymore!");
+		lbbestpath.setText("");
 		showing = false;
 		break;
 	}
@@ -432,6 +434,7 @@ void app::recv(const packet &p) {
 		showtraildata.clear();
 		showtraildatadirty = true;
 		showtraildatalock.unlock();
+		lbbestpath.setText(std::string(p.data(), p.size()) + " is showing!");
 		writeChat(std::string(p.data(), p.size()) + " is showing!");
 		break;
 	}
