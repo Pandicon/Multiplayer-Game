@@ -24,6 +24,8 @@ namespace glgui {
 	extern glw::shader guioutlsh;
 	extern glw::vao quad;
 	extern glw::vbo quadb;
+	extern glw::vao textvao;
+	extern glw::vbo textvbo;
 
 	template<typename F1, typename F2>
 	inline void init(const std::string &shadersdir, const std::string &fonttex, F1 terr, F2 sherr) {
@@ -45,6 +47,8 @@ namespace glgui {
 		};
 		glw::initVaoVbo(quad, quadb, quadverts, sizeof(float)*16, sizeof(float)*4,
 			{glw::vap(2),glw::vap(2,sizeof(float)*2)}, GL_STATIC_DRAW);
+		glw::initVaoVbo(textvao, textvbo, NULL, sizeof(float)*16,
+				sizeof(float)*4, {glw::vap(2),glw::vap(2,sizeof(float)*2)}, GL_DYNAMIC_DRAW);
 	}
 	inline void terminate() {
 		font.atlas.del();
@@ -52,6 +56,8 @@ namespace glgui {
 		guioutlsh.del();
 		quad.del();
 		quadb.del();
+		textvao.del();
+		textvbo.del();
 	}
 
 	class control {
@@ -145,6 +151,8 @@ glw::shader glgui::guish;
 glw::shader glgui::guioutlsh;
 glw::vao glgui::quad;
 glw::vbo glgui::quadb;
+glw::vao glgui::textvao;
+glw::vbo glgui::textvbo;
 
 glm::ivec2 textdims(const std::string &s) {
 	size_t w = 0, h = 1, c = 0;
@@ -242,7 +250,7 @@ void glgui::label::render(const glm::mat4 &proj) const {
 		glgui::guish.uniformM4f("proj", proj);
 		glgui::guish.uniform3f("col", color);
 	}
-	glw::high::rendStr(txt, 0, 0, charsize.x, charsize.y, 0, glgui::font);
+	glw::high::rendStr(textvao, textvbo, txt, 0, 0, charsize.x, charsize.y, 0, glgui::font);
 }
 const std::string &glgui::label::text() const { return txt; }
 void glgui::label::setText(const std::string &t) {
@@ -279,9 +287,7 @@ void glgui::button::render(const glm::mat4 &proj) const {
 	glgui::guish.uniform1i("usetex", 1);
 	glgui::guish.uniformM4f("proj", m2);
 	glgui::guish.uniform3f("col", 0, 0, 0);
-	glw::high::rendStr(txt, 0, 0,
-		charsize.x,
-		charsize.y, 0, glgui::font);
+	glw::high::rendStr(textvao, textvbo, txt, 0, 0, charsize.x, charsize.y, 0, glgui::font);
 }
 std::string glgui::button::text() const { return txt; }
 void glgui::button::setText(const std::string &t) {
@@ -360,9 +366,7 @@ void glgui::textbox::render(const glm::mat4 &proj) const {
 	}
 	glgui::guish.uniform1i("usetex", 1);
 	glgui::guish.uniformM4f("proj", m2);
-	glw::high::rendStr(text, 0, 0,
-		charsize.x,
-		charsize.y, 0, glgui::font);
+	glw::high::rendStr(textvao, textvbo, text, 0, 0, charsize.x, charsize.y, 0, glgui::font);
 }
 
 #endif

@@ -734,13 +734,9 @@ namespace glw {
 			inline void swap(tiledTextureAtlas<w, h> &o) { atlas.swap(o.atlas); }
 		};
 		template<size_t ttaw, size_t ttah>
-		inline void rendStr(const std::string &str, float x, float y, float w, float h, float space, const tiledTextureAtlas<ttaw,ttah> &font) {
+		inline void rendStr(vao &a, vbo &b, const std::string &str, float x, float y, float w, float h, float space, const tiledTextureAtlas<ttaw,ttah> &font) {
 			float sx = x;
 			font.atlas.bind(GL_TEXTURE0);
-			vao a;
-			vbo b;
-			initVaoVbo(a, b, NULL, sizeof(float) * 16,
-				sizeof(float) * 4, {glw::vap(2),glw::vap(2,sizeof(float)*2)}, GL_DYNAMIC_DRAW);
 			a.bind();
 			b.bind();
 			float v[16] = {
@@ -770,6 +766,14 @@ namespace glw {
 				v[0] = v[12] = x;
 				v[4] = v[8] = x + w;
 			}
+		}
+		template<size_t ttaw, size_t ttah>
+		inline void rendStr(const std::string &str, float x, float y, float w, float h, float space, const tiledTextureAtlas<ttaw,ttah> &font) {
+			vao a;
+			vbo b;
+			initVaoVbo(a, b, NULL, sizeof(float) * 16,
+				sizeof(float) * 4, {glw::vap(2),glw::vap(2,sizeof(float)*2)}, GL_DYNAMIC_DRAW);
+			rendStr(a, b, str, x, y, w, h, space, font);
 		}
 	}
 }
