@@ -343,7 +343,7 @@ void app::recv(const packet &p) {
 		break;
 	}
 	case packets::S_C_MOVE:{
-		float y = .0625f;
+		float y = .03125f;
 		unsigned char col = p.data()[1];
 		unsigned char t = p.data()[0];
 		glm::ivec2 from = bots[col].pos;
